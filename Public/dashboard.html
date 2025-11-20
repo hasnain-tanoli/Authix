@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard - Authix</title>
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <div class="background-shapes">
+      <div class="shape shape-1"></div>
+      <div class="shape shape-2"></div>
+    </div>
+
+    <nav>
+      <div class="logo">Authix<span>.</span></div>
+      <button
+        onclick="logoutUser()"
+        class="nav-btn btn-outline"
+        style="border-color: #ef4444; color: #ef4444"
+      >
+        Logout
+      </button>
+    </nav>
+
+    <main class="page-container">
+      <div class="auth-card" style="max-width: 600px">
+        <div class="auth-header" style="text-align: left">
+          <h2>User Dashboard</h2>
+          <p>This is a protected route.</p>
+        </div>
+
+        <div
+          style="
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 8px;
+          "
+        >
+          <h3 style="color: var(--primary); margin-bottom: 10px">
+            My Profile Data
+          </h3>
+          <div id="profileData" style="font-family: monospace; color: #a5f3fc">
+            Loading...
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <script src="js/auth.js"></script>
+    <script>
+      requireAuth();
+
+      window.addEventListener("DOMContentLoaded", async () => {
+        const user = await fetchProfile();
+        if (user) {
+          document.getElementById("profileData").innerHTML = `
+                    <p><strong>ID:</strong> ${user.id}</p>
+                    <p><strong>Name:</strong> ${user.name}</p>
+                    <p><strong>Email:</strong> ${user.email}</p>
+                    <p><strong>Username:</strong> ${user.username}</p>
+                `;
+        }
+      });
+    </script>
+  </body>
+</html>

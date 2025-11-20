@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Authix | Secure Auth</title>
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <div class="background-shapes">
+      <div class="shape shape-1"></div>
+      <div class="shape shape-2"></div>
+    </div>
+
+    <nav>
+      <div class="logo">Authix<span>.</span></div>
+      <div class="nav-links">
+        <a href="login.html" class="nav-btn btn-outline">Login</a>
+        <a href="signup.html" class="nav-btn btn-fill">Sign Up</a>
+      </div>
+    </nav>
+
+    <main class="page-container">
+      <div class="hero-content">
+        <h1>The Most Secure Authentication for your Next App.</h1>
+        <p>Powered by JWT, Bcrypt, and PostgreSQL. Ready for deployment.</p>
+        <div class="cta-buttons">
+          <a href="signup.html" class="nav-btn btn-fill">Get Started</a>
+          <a href="login.html" class="nav-btn btn-outline">Login</a>
+        </div>
+      </div>
+    </main>
+
+    <script src="js/auth.js"></script>
+    <script>
+      if (localStorage.getItem("accessToken")) {
+        window.location.href = "/dashboard.html";
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sign Up - Authix</title>
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <div class="background-shapes">
+      <div class="shape shape-1"></div>
+      <div class="shape shape-2"></div>
+    </div>
+
+    <nav>
+      <a href="index.html" class="logo">Authix<span>.</span></a>
+    </nav>
+
+    <main class="page-container">
+      <div class="auth-card">
+        <div class="auth-header">
+          <h2>Create Account</h2>
+          <p>Get started for free.</p>
+        </div>
+        <form id="signupForm">
+          <div class="input-group">
+            <input type="text" id="name" placeholder="Full Name" required />
+          </div>
+          <div class="input-group">
+            <input type="text" id="username" placeholder="Username" required />
+          </div>
+          <div class="input-group">
+            <input type="email" id="email" placeholder="Email" required />
+          </div>
+          <div class="input-group">
+            <input
+              type="password"
+              id="password"
+              placeholder="Password"
+              required
+            />
+          </div>
+          <button type="submit" class="btn-full">Sign Up</button>
+        </form>
+        <p class="switch-text">
+          Already have an account? <a href="login.html">Log in</a>
+        </p>
+      </div>
+    </main>
+
+    <script src="js/auth.js"></script>
+    <script>
+      redirectIfAuth();
+
+      document.getElementById("signupForm").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const name = document.getElementById("name").value;
+        const user = document.getElementById("username").value;
+        const email = document.getElementById("email").value;
+        const pass = document.getElementById("password").value;
+        signupUser(name, user, email, pass);
+      });
+    </script>
+  </body>
+</html>
