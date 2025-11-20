@@ -1,5 +1,5 @@
 import bcrypt from "bcrypt";
-import { User } from "../db/connection.js";
+import { User, Role, Permission } from "../db/connection.js";
 import { Op } from "sequelize";
 import jwt from "jsonwebtoken";
 import { generateAccessAndRefreshTokens } from "./auth/auth.js";
@@ -38,6 +38,11 @@ export const handleSignup = async (req, res) => {
       email,
       password: hashedPassword,
     });
+
+    const defaultRole = await Role.findOne({ where: { name: "user" } });
+    if (defaultRole) {
+      await user.addRole(defaultRole);
+    }
 
     const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(
       user
@@ -106,12 +111,23 @@ export const getUserProfile = async (req, res) => {
   try {
     const user = await User.findByPk(req.user.id, {
       attributes: ["id", "username", "name", "email"],
+      include: {
+        model: Role,
+        attributes: ["name", "description"],
+        through: { attributes: [] },
+        include: {
+          model: Permission,
+          attributes: ["name", "action", "resource"],
+          through: { attributes: [] },
+        },
+      },
     });
 
     if (!user) return res.status(404).json({ error: "User not found" });
 
     res.json(user);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: "Failed to fetch profile" });
   }
 };

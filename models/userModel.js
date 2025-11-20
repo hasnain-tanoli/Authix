@@ -1,4 +1,3 @@
-// models/userModel.js
 import { DataTypes } from "sequelize";
 
 const createUserModel = (sequelize) => {

@@ -1,4 +1,3 @@
-// models/postModel.js
 import { DataTypes } from "sequelize";
 
 const createPostModel = (sequelize) => {
@@ -21,10 +20,6 @@ const createPostModel = (sequelize) => {
       type: DataTypes.TEXT,
       allowNull: true,
     },
-    excerpt: {
-      type: DataTypes.TEXT,
-      allowNull: true,
-    },
     status: {
       type: DataTypes.ENUM("draft", "published", "archived"),
       allowNull: false,
@@ -34,12 +29,16 @@ const createPostModel = (sequelize) => {
       type: DataTypes.STRING,
       allowNull: true,
     },
-    publishedAt: {
-      type: DataTypes.DATE,
+    metaTitle: {
+      type: DataTypes.STRING,
       allowNull: true,
     },
-    metadata: {
-      type: DataTypes.JSONB,
+    metaDescription: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    publishedAt: {
+      type: DataTypes.DATE,
       allowNull: true,
     },
   });

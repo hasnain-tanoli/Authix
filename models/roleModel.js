@@ -1,4 +1,3 @@
-// models/roleModel.js
 import { DataTypes } from "sequelize";
 
 const createRoleModel = (sequelize) => {

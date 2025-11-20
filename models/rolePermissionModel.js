@@ -1,4 +1,3 @@
-// models/rolePermissionModel.js
 import { DataTypes } from "sequelize";
 
 const createRolePermissionModel = (sequelize, { Role, Permission }) => {
