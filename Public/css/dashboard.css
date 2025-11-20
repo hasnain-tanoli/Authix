@@ -7,6 +7,7 @@
   --danger: #ef4444;
   --danger-hover: #dc2626;
   --success: #10b981;
+  --warning: #f59e0b;
   --text-main: #f8fafc;
   --text-muted: #94a3b8;
   --border: 1px solid rgba(255, 255, 255, 0.1);
@@ -104,6 +105,7 @@ body {
     rgba(59, 130, 246, 0.1),
     transparent 40%
   );
+  position: relative;
 }
 
 .view-header {
@@ -357,6 +359,47 @@ textarea:focus {
   display: block;
 }
 
+.toast-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.toast {
+  background: var(--bg-card);
+  color: var(--text-main);
+  padding: 16px 24px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 300px;
+  animation: slideIn 0.3s ease;
+  border-left: 4px solid var(--primary);
+}
+.toast.success {
+  border-left-color: var(--success);
+}
+.toast.error {
+  border-left-color: var(--danger);
+}
+.toast.warning {
+  border-left-color: var(--warning);
+}
+.toast-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+.toast-msg {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -365,5 +408,23 @@ textarea:focus {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
   }
 }
