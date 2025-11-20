@@ -1,6 +1,5 @@
 import { Role, Permission, User } from "../db/connection.js";
 import bcrypt from "bcrypt";
-import { Op } from "sequelize";
 
 export const createUser = async (req, res) => {
   try {
