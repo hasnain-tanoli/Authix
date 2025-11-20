@@ -4,282 +4,156 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Admin Dashboard - Authix</title>
-    <link rel="stylesheet" href="css/style.css" />
-    <style>
-      body {
-        overflow: hidden;
-      }
-      .dashboard-layout {
-        display: grid;
-        grid-template-columns: 250px 1fr;
-        height: 100vh;
-      }
-
-      .sidebar {
-        background: rgba(15, 23, 42, 0.95);
-        border-right: 1px solid rgba(255, 255, 255, 0.1);
-        padding: 20px;
-        display: flex;
-        flex-direction: column;
-      }
-      .sidebar-logo {
-        font-size: 1.5rem;
-        font-weight: bold;
-        margin-bottom: 40px;
-        color: #fff;
-      }
-      .sidebar-logo span {
-        color: #3b82f6;
-      }
-      .menu-item {
-        padding: 12px 15px;
-        color: #94a3b8;
-        cursor: pointer;
-        border-radius: 8px;
-        margin-bottom: 5px;
-        transition: 0.2s;
-      }
-      .menu-item:hover,
-      .menu-item.active {
-        background: rgba(59, 130, 246, 0.1);
-        color: #3b82f6;
-      }
-
-      .main-content {
-        overflow-y: auto;
-        padding: 30px;
-        position: relative;
-      }
-
-      .view-section {
-        display: none;
-      }
-      .view-section.active {
-        display: block;
-        animation: fadeIn 0.3s ease;
-      }
-
-      .data-table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 20px;
-        color: #cbd5e1;
-      }
-      .data-table th,
-      .data-table td {
-        padding: 12px;
-        text-align: left;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-      }
-      .data-table th {
-        color: #64748b;
-        font-size: 0.85rem;
-        text-transform: uppercase;
-      }
-
-      .stats-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 20px;
-        margin-bottom: 30px;
-      }
-      .stat-card {
-        background: rgba(30, 41, 59, 0.7);
-        padding: 20px;
-        border-radius: 12px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-      }
-      .stat-number {
-        font-size: 2rem;
-        font-weight: bold;
-        color: #fff;
-      }
-      .stat-label {
-        color: #94a3b8;
-        font-size: 0.9rem;
-      }
-
-      @keyframes fadeIn {
-        from {
-          opacity: 0;
-          transform: translateY(10px);
-        }
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
-      }
-    </style>
+    <link rel="stylesheet" href="css/dashboard.css" />
   </head>
   <body>
-    <div class="background-shapes">
-      <div class="shape shape-1"></div>
-      <div class="shape shape-2"></div>
-    </div>
-
     <div class="dashboard-layout">
       <nav class="sidebar">
         <div class="sidebar-logo">Authix<span>.</span></div>
-
-        <div class="menu-item active" onclick="switchView('dashboard')">
-          Dashboard
-        </div>
-        <div class="menu-item" onclick="switchView('posts')">Posts</div>
-
-        <div id="adminLinks" style="display: none">
-          <div
-            class="menu-title"
-            style="
-              margin: 20px 0 10px;
-              font-size: 0.8rem;
-              color: #475569;
-              text-transform: uppercase;
-            "
-          >
-            Administration
+        <div class="menu-group">
+          <div class="menu-title">Menu</div>
+          <div class="menu-item active" onclick="switchView('dashboard')">
+            Dashboard
           </div>
+          <div class="menu-item" onclick="switchView('posts')">Posts</div>
+        </div>
+        <div id="adminLinks" style="display: none" class="menu-group">
+          <div class="menu-title">Administration</div>
           <div class="menu-item" onclick="switchView('users')">Users</div>
           <div class="menu-item" onclick="switchView('roles')">Roles</div>
           <div class="menu-item" onclick="switchView('permissions')">
             Permissions
           </div>
         </div>
-
         <div style="margin-top: auto">
-          <div class="menu-item" style="color: #ef4444" onclick="logoutUser()">
-            Logout
-          </div>
+          <div class="menu-item logout" onclick="logoutUser()">Logout</div>
         </div>
       </nav>
 
       <main class="main-content">
-        <div id="view-dashboard" class="view-section active">
-          <h2>Overview</h2>
-          <div class="stats-grid" id="statsGrid">
-          </div>
-          <div class="auth-card" style="width: 100%">
+        <section id="view-dashboard" class="view-section active">
+          <div class="view-header"><h2>Overview</h2></div>
+          <div class="stats-grid" id="statsGrid"></div>
+          <div class="card">
             <h3>Recent Activity</h3>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Title</th>
+                    <th>Author</th>
+                    <th>Date</th>
+                  </tr>
+                </thead>
+                <tbody id="recentActivityTable"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <section id="view-users" class="view-section">
+          <div class="view-header">
+            <h2>User Management</h2>
+          </div>
+
+          <div class="card">
+            <h3>Create New User</h3>
+            <form id="createUserForm">
+              <div class="form-row">
+                <input
+                  type="text"
+                  id="newUserName"
+                  placeholder="Full Name"
+                  required
+                />
+                <input
+                  type="text"
+                  id="newUserUsername"
+                  placeholder="Username"
+                  required
+                />
+              </div>
+              <div class="form-row">
+                <input
+                  type="email"
+                  id="newUserEmail"
+                  placeholder="Email"
+                  required
+                />
+                <input
+                  type="password"
+                  id="newUserPassword"
+                  placeholder="Password"
+                  required
+                />
+              </div>
+              <div style="margin-bottom: 16px">
+                <label class="field-label">Assign Roles</label>
+                <div id="newUserRoleChecks" class="checkbox-group"></div>
+              </div>
+              <button type="submit" class="btn btn-primary">Create User</button>
+            </form>
+          </div>
+
+          <div class="card">
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>User</th>
+                    <th>Email</th>
+                    <th>Roles</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="usersTable"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <section id="view-roles" class="view-section">
+          <div class="view-header"><h2>Roles</h2></div>
+          <div class="card">
+            <h3>Create Role</h3>
+            <form id="createRoleForm">
+              <div class="form-row">
+                <input
+                  type="text"
+                  id="newRoleName"
+                  placeholder="Role Name"
+                  required
+                />
+              </div>
+              <div style="margin-bottom: 16px">
+                <label class="field-label">Assign Permissions</label>
+                <div id="newRolePermChecks" class="checkbox-group"></div>
+              </div>
+              <button type="submit" class="btn btn-primary">Create Role</button>
+            </form>
+          </div>
+          <div class="card">
             <table class="data-table">
               <thead>
                 <tr>
-                  <th>Title</th>
-                  <th>Author</th>
-                  <th>Date</th>
+                  <th>ID</th>
+                  <th>Name</th>
+                  <th>Permissions</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
-              <tbody id="recentActivityTable"></tbody>
+              <tbody id="rolesTable"></tbody>
             </table>
           </div>
-        </div>
+        </section>
 
-        <div id="view-users" class="view-section">
-          <div
-            style="
-              display: flex;
-              justify-content: space-between;
-              align-items: center;
-            "
-          >
-            <h2>User Management</h2>
-          </div>
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Role</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="usersTable"></tbody>
-          </table>
-
-          <div class="auth-card" style="margin-top: 30px">
-            <h3>Assign Role</h3>
-            <form
-              id="assignRoleForm"
-              style="display: flex; gap: 10px; margin-top: 15px"
-            >
-              <input
-                type="text"
-                id="assignUserId"
-                placeholder="User ID"
-                class="input"
-                style="flex: 1"
-              />
-              <input
-                type="text"
-                id="assignRoleId"
-                placeholder="Role ID"
-                class="input"
-                style="flex: 1"
-              />
-              <button type="submit" class="btn-fill">Assign</button>
-            </form>
-          </div>
-        </div>
-
-        <div id="view-roles" class="view-section">
-          <h2>Roles & Access</h2>
-
-          <div
-            style="
-              background: rgba(0, 0, 0, 0.2);
-              padding: 15px;
-              border-radius: 8px;
-              margin: 20px 0;
-            "
-          >
-            <h4 style="margin-bottom: 10px">Create New Role</h4>
-            <form id="createRoleForm" style="display: flex; gap: 10px">
-              <input
-                type="text"
-                id="newRoleName"
-                placeholder="Role Name (e.g. moderator)"
-                required
-              />
-              <input
-                type="number"
-                id="newRoleLevel"
-                placeholder="Level (0-100)"
-                style="width: 100px"
-              />
-              <button type="submit" class="btn-fill">Create</button>
-            </form>
-          </div>
-
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Name</th>
-                <th>Permissions</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="rolesTable"></tbody>
-          </table>
-        </div>
-
-        <div id="view-permissions" class="view-section">
-          <h2>Permissions</h2>
-          <div
-            style="
-              background: rgba(0, 0, 0, 0.2);
-              padding: 15px;
-              border-radius: 8px;
-              margin: 20px 0;
-            "
-          >
-            <h4 style="margin-bottom: 10px">Add Permission</h4>
-            <form id="createPermForm" style="display: flex; gap: 10px">
-              <input
-                type="text"
-                id="permName"
-                placeholder="Name (e.g. post:delete)"
-                required
-              />
-              <select id="permAction" style="padding: 10px; border-radius: 6px">
+        <section id="view-permissions" class="view-section">
+          <div class="view-header"><h2>Permissions</h2></div>
+          <div class="card">
+            <h3>Add Permission</h3>
+            <form id="createPermForm" class="form-row">
+              <input type="text" id="permName" placeholder="Name" required />
+              <select id="permAction">
                 <option value="create">Create</option>
                 <option value="read">Read</option>
                 <option value="update">Update</option>
@@ -288,67 +162,86 @@
               <input
                 type="text"
                 id="permResource"
-                placeholder="Resource (e.g. posts)"
+                placeholder="Resource"
                 required
               />
-              <button type="submit" class="btn-fill">Add</button>
+              <button type="submit" class="btn btn-primary">Add</button>
             </form>
           </div>
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Name</th>
-                <th>Action</th>
-                <th>Resource</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="permsTable"></tbody>
-          </table>
-        </div>
+          <div class="card">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Name</th>
+                  <th>Details</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="permsTable"></tbody>
+            </table>
+          </div>
+        </section>
 
-        <div id="view-posts" class="view-section">
-          <h2>Content Manager</h2>
-          <div class="auth-card" style="margin: 20px 0">
+        <section id="view-posts" class="view-section">
+          <div class="view-header"><h2>Content</h2></div>
+          <div class="card">
+            <h3>Create Post</h3>
             <form id="createPostForm">
-              <input
-                type="text"
-                id="postTitle"
-                placeholder="Post Title"
-                style="width: 100%; margin-bottom: 10px; padding: 10px"
-                required
-              />
-              <input
-                type="text"
-                id="postSlug"
-                placeholder="Slug"
-                style="width: 100%; margin-bottom: 10px; padding: 10px"
-                required
-              />
+              <div class="form-row">
+                <input
+                  type="text"
+                  id="postTitle"
+                  placeholder="Title"
+                  required
+                />
+                <input type="text" id="postSlug" placeholder="Slug" required />
+              </div>
               <textarea
                 id="postContent"
                 placeholder="Content..."
-                style="
-                  width: 100%;
-                  height: 100px;
-                  padding: 10px;
-                  background: #0f172a;
-                  color: white;
-                  border: 1px solid #333;
-                "
+                rows="4"
                 required
               ></textarea>
-              <button type="submit" class="btn-full" style="margin-top: 10px">
-                Create Post
+              <button
+                type="submit"
+                class="btn btn-primary"
+                style="margin-top: 10px"
+              >
+                Publish
               </button>
             </form>
           </div>
           <div id="postsList"></div>
-        </div>
+        </section>
       </main>
-    </div>
 
+      <div class="modal-overlay" id="editModal">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h3 id="modalTitle">Edit Item</h3>
+            <button onclick="closeModal()" class="btn btn-secondary">X</button>
+          </div>
+          <form id="editForm">
+            <input type="hidden" id="editId" />
+            <input type="hidden" id="editType" />
+            <div id="modalFields"></div>
+            <div class="modal-footer">
+              <button
+                type="button"
+                onclick="closeModal()"
+                class="btn btn-secondary"
+              >
+                Cancel
+              </button>
+              <button type="submit" class="btn btn-primary">
+                Save Changes
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
     <script src="js/auth.js"></script>
     <script src="js/admin-dashboard.js"></script>
   </body>

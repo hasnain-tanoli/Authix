@@ -28,9 +28,13 @@ import {
   assignRoleToUser,
   getAllUsers,
   deleteUser,
+  createUser,
+  updateUser,
+  updateRole,
+  updatePermission,
 } from "../controllers/adminController.js";
 import { uploadMedia, updatePost } from "../controllers/cmsController.js";
-import { getDashboardStats } from "../controllers/statsController.js"; // New
+import { getDashboardStats } from "../controllers/statsController.js";
 
 const router = express.Router();
 
@@ -43,14 +47,12 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-// Auth
 router.post("/signup", handleSignup);
 router.post("/login", handleLogin);
 router.post("/token", handleRefreshToken);
 router.post("/logout", handleLogout);
 router.get("/profile", authenticateToken, getUserProfile);
 
-// Stats
 router.get(
   "/admin/stats",
   authenticateToken,
@@ -58,7 +60,6 @@ router.get(
   getDashboardStats
 );
 
-// Post CRUD
 router.get("/posts", getAllPosts);
 router.get("/posts/:slug", getPostBySlug);
 router.post(
@@ -82,8 +83,14 @@ router.post(
   uploadMedia
 );
 
-// Admin CRUD - Users
 router.get("/admin/users", authenticateToken, verifyRole("admin"), getAllUsers);
+router.post("/admin/users", authenticateToken, verifyRole("admin"), createUser);
+router.put(
+  "/admin/users/:id",
+  authenticateToken,
+  verifyRole("admin"),
+  updateUser
+);
 router.delete(
   "/admin/users/:id",
   authenticateToken,
@@ -97,9 +104,14 @@ router.post(
   assignRoleToUser
 );
 
-// Admin CRUD - Roles
 router.get("/admin/roles", authenticateToken, verifyRole("admin"), getAllRoles);
 router.post("/admin/roles", authenticateToken, verifyRole("admin"), createRole);
+router.put(
+  "/admin/roles/:id",
+  authenticateToken,
+  verifyRole("admin"),
+  updateRole
+);
 router.delete(
   "/admin/roles/:id",
   authenticateToken,
@@ -107,7 +119,6 @@ router.delete(
   deleteRole
 );
 
-// Admin CRUD - Permissions
 router.get(
   "/admin/permissions",
   authenticateToken,
@@ -119,6 +130,12 @@ router.post(
   authenticateToken,
   verifyRole("admin"),
   createPermission
+);
+router.put(
+  "/admin/permissions/:id",
+  authenticateToken,
+  verifyRole("admin"),
+  updatePermission
 );
 router.delete(
   "/admin/permissions/:id",

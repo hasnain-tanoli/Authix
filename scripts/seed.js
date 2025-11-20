@@ -1,5 +1,5 @@
 import dotenv from "dotenv";
-import { connectDB, User, Role } from "../db/connection.js";
+import { connectDB, User, Role, Permission } from "../db/connection.js";
 import bcrypt from "bcrypt";
 
 dotenv.config();
@@ -15,38 +15,63 @@ const seedDatabase = async () => {
   try {
     const [adminRole] = await Role.findOrCreate({
       where: { name: "admin" },
-      defaults: { description: "Administrator with full access", level: 100 },
-    });
-
-    const [editorRole] = await Role.findOrCreate({
-      where: { name: "editor" },
-      defaults: { description: "Can create and edit content", level: 50 },
-    });
-
-    await Role.findOrCreate({
-      where: { name: "user" },
-      defaults: { description: "Standard user", level: 10 },
-    });
-
-    const hashedPassword = await bcrypt.hash("admin123", 10);
-
-    const [adminUser, created] = await User.findOrCreate({
-      where: { email: "admin@authix.com" },
       defaults: {
-        username: "admin",
-        name: "System Administrator",
-        password: hashedPassword,
+        description: "Administrator with full access",
+        level: 100,
         isSystem: true,
       },
     });
 
-    if (created || adminUser) {
-      await adminUser.addRole(adminRole);
-      await adminUser.addRole(editorRole);
-      console.log("Admin user created/updated with roles.");
+    const [editorRole] = await Role.findOrCreate({
+      where: { name: "editor" },
+      defaults: {
+        description: "Can create and edit content",
+        level: 50,
+        isSystem: true,
+      },
+    });
+
+    await Role.findOrCreate({
+      where: { name: "user" },
+      defaults: { description: "Standard user", level: 10, isSystem: true },
+    });
+
+    const systemEmail = "system@authix.com";
+    const systemUsername = "system";
+    const plainPassword = "admin123";
+    const hashedPassword = await bcrypt.hash(plainPassword, 10);
+
+    let systemUser = await User.findOne({ where: { email: systemEmail } });
+
+    if (systemUser) {
+      systemUser.password = hashedPassword;
+      systemUser.isSystem = true;
+      systemUser.username = systemUsername;
+      await systemUser.save();
+      console.log(`Existing user '${systemEmail}' updated with new password.`);
+    } else {
+      systemUser = await User.create({
+        email: systemEmail,
+        username: systemUsername,
+        name: "System Administrator",
+        password: hashedPassword,
+        isSystem: true,
+      });
+      console.log(`New user '${systemEmail}' created.`);
     }
 
-    console.log("Database seeding completed.");
+    // 3. Assign Roles
+    await systemUser.addRole(adminRole);
+    await systemUser.addRole(editorRole);
+    console.log("Roles assigned to System Admin.");
+
+    console.log("--------------------------------");
+    console.log("LOGIN DETAILS:");
+    console.log(`Email:    ${systemEmail}`);
+    console.log(`Username: ${systemUsername}`);
+    console.log(`Password: ${plainPassword}`);
+    console.log("--------------------------------");
+
     process.exit(0);
   } catch (error) {
     console.error("Seeding failed:", error);
