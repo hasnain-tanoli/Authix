@@ -3,6 +3,7 @@ import { Op } from "sequelize";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import { asyncHandler } from "../utils/asyncHandler.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -16,7 +17,7 @@ const generateSlug = (title) => {
     .replace(/^-+|-+$/g, "");
 };
 
-export const createPost = async (req, res) => {
+export const createPost = asyncHandler(async (req, res) => {
   try {
     let { title, content, slug, status } = req.body;
 
@@ -51,18 +52,17 @@ export const createPost = async (req, res) => {
 
     res.status(201).json(post);
   } catch (error) {
-    console.error(error);
     if (req.file) {
       const filePath = path.join(__dirname, "../uploads", req.file.filename);
       fs.unlink(filePath, (err) => {
         if (err) console.error("Failed to delete uploaded file:", err);
       });
     }
-    res.status(500).json({ error: "Failed to create post" });
+    throw error;
   }
-};
+});
 
-export const updatePost = async (req, res) => {
+export const updatePost = asyncHandler(async (req, res) => {
   try {
     const { id } = req.params;
     let { title, content, slug, status } = req.body;
@@ -97,60 +97,47 @@ export const updatePost = async (req, res) => {
     await post.save();
     res.json({ message: "Post updated successfully", post });
   } catch (error) {
-    console.error(error);
     if (req.file) {
       const filePath = path.join(__dirname, "../uploads", req.file.filename);
       fs.unlink(filePath, (err) => {
         if (err) console.error("Failed to delete uploaded file:", err);
       });
     }
-    res.status(500).json({ error: "Failed to update post" });
+    throw error;
   }
-};
+});
 
-export const getAllPosts = async (req, res) => {
-  try {
-    const posts = await Post.findAll({
-      include: {
-        model: User,
-        attributes: ["id", "name", "username"],
-      },
-      order: [["createdAt", "DESC"]],
-    });
-    res.json(posts);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to fetch posts" });
-  }
-};
+export const getAllPosts = asyncHandler(async (req, res) => {
+  const posts = await Post.findAll({
+    include: {
+      model: User,
+      attributes: ["id", "name", "username"],
+    },
+    order: [["createdAt", "DESC"]],
+  });
+  res.json(posts);
+});
 
-export const getPostBySlug = async (req, res) => {
-  try {
-    const { slug } = req.params;
-    const post = await Post.findOne({
-      where: { slug },
-      include: {
-        model: User,
-        attributes: ["name", "username"],
-      },
-    });
+export const getPostBySlug = asyncHandler(async (req, res) => {
+  const { slug } = req.params;
+  const post = await Post.findOne({
+    where: { slug },
+    include: {
+      model: User,
+      attributes: ["name", "username"],
+    },
+  });
 
-    if (!post) return res.status(404).json({ error: "Post not found" });
+  if (!post) return res.status(404).json({ error: "Post not found" });
 
-    res.json(post);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to fetch post" });
-  }
-};
+  res.json(post);
+});
 
-export const deletePost = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const deleted = await Post.destroy({ where: { id } });
+export const deletePost = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const deleted = await Post.destroy({ where: { id } });
 
-    if (!deleted) return res.status(404).json({ error: "Post not found" });
+  if (!deleted) return res.status(404).json({ error: "Post not found" });
 
-    res.json({ message: "Post deleted successfully" });
-  } catch (error) {
-    res.status(500).json({ error: "Failed to delete post" });
-  }
-};
+  res.json({ message: "Post deleted successfully" });
+});

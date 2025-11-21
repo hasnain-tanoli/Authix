@@ -7,6 +7,7 @@ import router from "./routes/routes.js";
 import cookieParser from "cookie-parser";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
+import { errorHandler } from "./middleware/errorHandler.js";
 
 dotenv.config();
 
@@ -58,6 +59,8 @@ app.use(express.static(path.join(__dirname, "public")));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 app.use("/", router);
+
+app.use(errorHandler);
 
 if (process.env.NODE_ENV !== "production") {
   const PORT = process.env.PORT || 3000;

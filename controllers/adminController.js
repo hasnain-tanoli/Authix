@@ -1,7 +1,8 @@
 import { Role, Permission, User, sequelize } from "../db/connection.js";
 import bcrypt from "bcrypt";
+import { asyncHandler } from "../utils/asyncHandler.js";
 
-export const createUser = async (req, res) => {
+export const createUser = asyncHandler(async (req, res) => {
   const t = await sequelize.transaction();
   try {
     const { name, username, email, password, roleIds } = req.body;
@@ -37,26 +38,20 @@ export const createUser = async (req, res) => {
     res.status(201).json({ message: "User created successfully", user });
   } catch (error) {
     await t.rollback();
-    console.error("Error in createUser:", error);
-    res.status(500).json({ error: "Failed to create user" });
+    throw error;
   }
-};
+});
 
-export const getAllUsers = async (req, res) => {
-  try {
-    const users = await User.findAll({
-      attributes: ["id", "name", "email", "username", "isSystem"],
-      include: { model: Role, attributes: ["id", "name"] },
-      order: [["id", "ASC"]],
-    });
-    res.json(users);
-  } catch (error) {
-    console.error("Error in getAllUsers:", error);
-    res.status(500).json({ error: "Failed to fetch users" });
-  }
-};
+export const getAllUsers = asyncHandler(async (req, res) => {
+  const users = await User.findAll({
+    attributes: ["id", "name", "email", "username", "isSystem"],
+    include: { model: Role, attributes: ["id", "name"] },
+    order: [["id", "ASC"]],
+  });
+  res.json(users);
+});
 
-export const updateUser = async (req, res) => {
+export const updateUser = asyncHandler(async (req, res) => {
   const t = await sequelize.transaction();
   try {
     const { name, email, username, roleIds } = req.body;
@@ -101,27 +96,21 @@ export const updateUser = async (req, res) => {
     res.json({ message: "User updated successfully" });
   } catch (error) {
     await t.rollback();
-    console.error("Error in updateUser:", error);
-    res.status(500).json({ error: "Update failed" });
+    throw error;
   }
-};
+});
 
-export const deleteUser = async (req, res) => {
-  try {
-    const user = await User.findByPk(req.params.id);
-    if (!user) return res.status(404).json({ error: "User not found" });
-    if (user.isSystem)
-      return res.status(403).json({ error: "System users cannot be deleted" });
+export const deleteUser = asyncHandler(async (req, res) => {
+  const user = await User.findByPk(req.params.id);
+  if (!user) return res.status(404).json({ error: "User not found" });
+  if (user.isSystem)
+    return res.status(403).json({ error: "System users cannot be deleted" });
 
-    await user.destroy();
-    res.json({ message: "User deleted successfully" });
-  } catch (error) {
-    console.error("Error in deleteUser:", error);
-    res.status(500).json({ error: "Delete failed" });
-  }
-};
+  await user.destroy();
+  res.json({ message: "User deleted successfully" });
+});
 
-export const createRole = async (req, res) => {
+export const createRole = asyncHandler(async (req, res) => {
   const t = await sequelize.transaction();
   try {
     const { name, description, permissionIds } = req.body;
@@ -142,28 +131,22 @@ export const createRole = async (req, res) => {
     res.status(201).json({ message: "Role created", role });
   } catch (error) {
     await t.rollback();
-    console.error("Error in createRole:", error);
-    res.status(500).json({ error: "Failed to create role" });
+    throw error;
   }
-};
+});
 
-export const getAllRoles = async (req, res) => {
-  try {
-    const roles = await Role.findAll({
-      include: {
-        model: Permission,
-        attributes: ["id", "name", "action", "resource"],
-      },
-      order: [["id", "ASC"]],
-    });
-    res.json(roles);
-  } catch (error) {
-    console.error("Error in getAllRoles:", error);
-    res.status(500).json({ error: "Failed to fetch roles" });
-  }
-};
+export const getAllRoles = asyncHandler(async (req, res) => {
+  const roles = await Role.findAll({
+    include: {
+      model: Permission,
+      attributes: ["id", "name", "action", "resource"],
+    },
+    order: [["id", "ASC"]],
+  });
+  res.json(roles);
+});
 
-export const updateRole = async (req, res) => {
+export const updateRole = asyncHandler(async (req, res) => {
   const t = await sequelize.transaction();
   try {
     const { name, description, permissionIds } = req.body;
@@ -199,129 +182,92 @@ export const updateRole = async (req, res) => {
     res.json({ message: "Role updated successfully" });
   } catch (error) {
     await t.rollback();
-    console.error("Error in updateRole:", error);
-    res.status(500).json({ error: "Update failed" });
+    throw error;
   }
-};
+});
 
-export const deleteRole = async (req, res) => {
-  try {
-    const role = await Role.findByPk(req.params.id);
-    if (!role) return res.status(404).json({ error: "Role not found" });
-    if (role.isSystem)
-      return res.status(403).json({ error: "System roles cannot be deleted" });
+export const deleteRole = asyncHandler(async (req, res) => {
+  const role = await Role.findByPk(req.params.id);
+  if (!role) return res.status(404).json({ error: "Role not found" });
+  if (role.isSystem)
+    return res.status(403).json({ error: "System roles cannot be deleted" });
 
-    await role.destroy();
-    res.json({ message: "Role deleted successfully" });
-  } catch (error) {
-    console.error("Error in deleteRole:", error);
-    res.status(500).json({ error: "Delete failed" });
-  }
-};
+  await role.destroy();
+  res.json({ message: "Role deleted successfully" });
+});
 
-export const createPermission = async (req, res) => {
-  try {
-    const { name, resource, action, description } = req.body;
+export const createPermission = asyncHandler(async (req, res) => {
+  const { name, resource, action, description } = req.body;
 
-    const existing = await Permission.findOne({ where: { name } });
-    if (existing)
-      return res.status(400).json({ error: "Permission name exists" });
+  const existing = await Permission.findOne({ where: { name } });
+  if (existing)
+    return res.status(400).json({ error: "Permission name exists" });
 
-    const perm = await Permission.create({
-      name,
-      resource,
-      action,
-      description,
-    });
-    res.status(201).json({ message: "Permission created", perm });
-  } catch (error) {
-    console.error("Error in createPermission:", error);
-    res.status(500).json({ error: "Failed to create permission" });
-  }
-};
+  const perm = await Permission.create({
+    name,
+    resource,
+    action,
+    description,
+  });
+  res.status(201).json({ message: "Permission created", perm });
+});
 
-export const getAllPermissions = async (req, res) => {
-  try {
-    const perms = await Permission.findAll({
-      order: [
-        ["resource", "ASC"],
-        ["id", "ASC"],
-      ],
-    });
-    res.json(perms);
-  } catch (error) {
-    console.error("Error in getAllPermissions:", error);
-    res.status(500).json({ error: "Failed to fetch permissions" });
-  }
-};
+export const getAllPermissions = asyncHandler(async (req, res) => {
+  const perms = await Permission.findAll({
+    order: [
+      ["resource", "ASC"],
+      ["id", "ASC"],
+    ],
+  });
+  res.json(perms);
+});
 
-export const updatePermission = async (req, res) => {
-  try {
-    const { name, resource, action } = req.body;
-    const perm = await Permission.findByPk(req.params.id);
+export const updatePermission = asyncHandler(async (req, res) => {
+  const { name, resource, action } = req.body;
+  const perm = await Permission.findByPk(req.params.id);
 
-    if (!perm) return res.status(404).json({ error: "Permission not found" });
-    if (perm.isSystem)
-      return res.status(403).json({ error: "Cannot edit System Permission" });
+  if (!perm) return res.status(404).json({ error: "Permission not found" });
+  if (perm.isSystem)
+    return res.status(403).json({ error: "Cannot edit System Permission" });
 
-    perm.name = name || perm.name;
-    perm.resource = resource || perm.resource;
-    perm.action = action || perm.action;
+  perm.name = name || perm.name;
+  perm.resource = resource || perm.resource;
+  perm.action = action || perm.action;
 
-    await perm.save();
-    res.json({ message: "Permission updated successfully" });
-  } catch (error) {
-    console.error("Error in updatePermission:", error);
-    res.status(500).json({ error: "Update failed" });
-  }
-};
+  await perm.save();
+  res.json({ message: "Permission updated successfully" });
+});
 
-export const deletePermission = async (req, res) => {
-  try {
-    const perm = await Permission.findByPk(req.params.id);
-    if (!perm) return res.status(404).json({ error: "Permission not found" });
-    if (perm.isSystem)
-      return res
-        .status(403)
-        .json({ error: "System permissions cannot be deleted" });
+export const deletePermission = asyncHandler(async (req, res) => {
+  const perm = await Permission.findByPk(req.params.id);
+  if (!perm) return res.status(404).json({ error: "Permission not found" });
+  if (perm.isSystem)
+    return res
+      .status(403)
+      .json({ error: "System permissions cannot be deleted" });
 
-    await perm.destroy();
-    res.json({ message: "Permission deleted successfully" });
-  } catch (error) {
-    console.error("Error in deletePermission:", error);
-    res.status(500).json({ error: "Delete failed" });
-  }
-};
+  await perm.destroy();
+  res.json({ message: "Permission deleted successfully" });
+});
 
-export const assignPermissionToRole = async (req, res) => {
-  try {
-    const { roleId, permissionId } = req.body;
-    const role = await Role.findByPk(roleId);
-    const permission = await Permission.findByPk(permissionId);
+export const assignPermissionToRole = asyncHandler(async (req, res) => {
+  const { roleId, permissionId } = req.body;
+  const role = await Role.findByPk(roleId);
+  const permission = await Permission.findByPk(permissionId);
 
-    if (!role || !permission)
-      return res.status(404).json({ error: "Not found" });
+  if (!role || !permission) return res.status(404).json({ error: "Not found" });
 
-    await role.addPermission(permission);
-    res.json({ message: "Assigned successfully" });
-  } catch (error) {
-    console.error("Error in assignPermissionToRole:", error);
-    res.status(500).json({ error: "Assignment failed" });
-  }
-};
+  await role.addPermission(permission);
+  res.json({ message: "Assigned successfully" });
+});
 
-export const assignRoleToUser = async (req, res) => {
-  try {
-    const { userId, roleId } = req.body;
-    const user = await User.findByPk(userId);
-    const role = await Role.findByPk(roleId);
+export const assignRoleToUser = asyncHandler(async (req, res) => {
+  const { userId, roleId } = req.body;
+  const user = await User.findByPk(userId);
+  const role = await Role.findByPk(roleId);
 
-    if (!user || !role) return res.status(404).json({ error: "Not found" });
+  if (!user || !role) return res.status(404).json({ error: "Not found" });
 
-    await user.addRole(role);
-    res.json({ message: "Assigned successfully" });
-  } catch (error) {
-    console.error("Error in assignRoleToUser:", error);
-    res.status(500).json({ error: "Assignment failed" });
-  }
-};
+  await user.addRole(role);
+  res.json({ message: "Assigned successfully" });
+});
