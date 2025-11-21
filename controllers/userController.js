@@ -49,6 +49,7 @@ export const handleSignup = asyncHandler(async (req, res) => {
   );
 
   res.cookie("jwt", refreshToken, cookieOptions);
+  res.cookie("access_token", accessToken, { ...cookieOptions, maxAge: 15 * 60 * 1000 });
 
   res.status(201).json({
     message: "User created successfully",
@@ -85,6 +86,7 @@ export const handleLogin = asyncHandler(async (req, res) => {
   );
 
   res.cookie("jwt", refreshToken, cookieOptions);
+  res.cookie("access_token", accessToken, { ...cookieOptions, maxAge: 15 * 60 * 1000 });
 
   res.status(200).json({
     message: "Login successful",
@@ -139,7 +141,8 @@ export const handleRefreshToken = asyncHandler(async (req, res) => {
     { expiresIn: "15m" }
   );
 
-  res.json({ accessToken });
+  res.cookie("access_token", accessToken, { ...cookieOptions, maxAge: 15 * 60 * 1000 });
+  res.json({ message: "Token refreshed" });
 });
 
 export const handleLogout = asyncHandler(async (req, res) => {
@@ -156,6 +159,7 @@ export const handleLogout = asyncHandler(async (req, res) => {
   }
 
   res.clearCookie("jwt", cookieOptions);
+  res.clearCookie("access_token", cookieOptions);
 
   return res.sendStatus(204);
 });

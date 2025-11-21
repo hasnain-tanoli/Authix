@@ -48,15 +48,6 @@
     </main>
 
     <script src="js/auth.js"></script>
-    <script>
-      redirectIfAuth();
-
-      document.getElementById("loginForm").addEventListener("submit", (e) => {
-        e.preventDefault();
-        const email = document.getElementById("email").value;
-        const pass = document.getElementById("password").value;
-        loginUser(email, pass);
-      });
-    </script>
+    <script src="js/login.js"></script>
   </body>
 </html>

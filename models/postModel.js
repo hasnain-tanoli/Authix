@@ -25,9 +25,13 @@ const createPostModel = (sequelize) => {
       allowNull: false,
       defaultValue: "draft",
     },
-    featuredImage: {
-      type: DataTypes.STRING,
+    featuredImageId: {
+      type: DataTypes.INTEGER,
       allowNull: true,
+      references: {
+        model: "Media",
+        key: "id",
+      },
     },
     metaTitle: {
       type: DataTypes.STRING,

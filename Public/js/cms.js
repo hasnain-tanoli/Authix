@@ -11,13 +11,11 @@ async function fetchPosts() {
 }
 
 async function createPost(title, slug, content) {
-  const token = localStorage.getItem("accessToken");
   try {
     const res = await fetch(`${POSTS_API_URL}/posts`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({ title, slug, content, status: "published" }),
     });
@@ -37,15 +35,13 @@ async function createPost(title, slug, content) {
 }
 
 async function deletePost(id) {
-  const token = localStorage.getItem("accessToken");
+
   if (!confirm("Are you sure you want to delete this post?")) return;
 
   try {
     const res = await fetch(`${POSTS_API_URL}/posts/${id}`, {
       method: "DELETE",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
+      headers: {},
     });
 
     if (res.ok) {

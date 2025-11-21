@@ -21,8 +21,17 @@ document.getElementById("postSlug").addEventListener("input", (e) => {
   e.target.setAttribute("data-manually-edited", "true");
 });
 
+// Global state for data lookups
+window.state = {
+  users: [],
+  roles: [],
+  permissions: [],
+  posts: []
+};
+
 window.addEventListener("DOMContentLoaded", async () => {
   requireAuth();
+  setupEventListeners();
   try {
     currentUser = await fetchProfile();
     if (currentUser) {
@@ -40,6 +49,37 @@ window.addEventListener("DOMContentLoaded", async () => {
     showToast("Error", "Failed to load profile", "error");
   }
 });
+
+function setupEventListeners() {
+  // Navigation
+  document.querySelectorAll('.menu-item[data-view]').forEach(el => {
+    el.addEventListener('click', (e) => switchView(e.currentTarget.dataset.view));
+  });
+  
+  document.getElementById('nav-logout')?.addEventListener('click', logoutUser);
+  
+  // Modal
+  document.getElementById('modalCloseBtn')?.addEventListener('click', closeModal);
+  document.getElementById('modalCancelBtn')?.addEventListener('click', closeModal);
+  
+  // Event Delegation for Dynamic Content
+  document.addEventListener('click', (e) => {
+    const target = e.target.closest('button');
+    if (!target) return;
+    
+    if (target.classList.contains('btn-edit')) {
+      const type = target.dataset.type;
+      const id = target.dataset.id;
+      openEditModal(type, id);
+    }
+    
+    if (target.classList.contains('btn-delete')) {
+      const type = target.dataset.type;
+      const id = target.dataset.id;
+      deleteResource(type, id);
+    }
+  });
+}
 
 window.switchView = function (viewName) {
   document
@@ -102,6 +142,7 @@ async function loadDashboardStats() {
 async function loadUsers() {
   try {
     const users = await apiFetch("/admin/users");
+    window.state.users = users;
     document.getElementById("usersTable").innerHTML = users
       .map(
         (u) => `
@@ -118,12 +159,8 @@ async function loadUsers() {
           u.isSystem
             ? '<span class="btn btn-disabled">Protected</span>'
             : `
-            <button onclick='openEditModal("users", ${JSON.stringify(
-              u
-            )})' class="btn btn-secondary">Edit</button>
-            <button onclick="deleteResource('users', ${
-              u.id
-            })" class="btn btn-danger">Del</button>
+            <button class="btn btn-secondary btn-edit" data-type="users" data-id="${u.id}">Edit</button>
+            <button class="btn btn-danger btn-delete" data-type="users" data-id="${u.id}">Del</button>
         `
         }
       </td>
@@ -139,6 +176,7 @@ async function loadUsers() {
 async function loadRoles() {
   try {
     const roles = await apiFetch("/admin/roles");
+    window.state.roles = roles;
     document.getElementById("rolesTable").innerHTML = roles
       .map(
         (r) => `
@@ -161,12 +199,8 @@ async function loadRoles() {
           r.isSystem
             ? '<span class="btn btn-disabled">Protected</span>'
             : `
-            <button onclick='openEditModal("roles", ${JSON.stringify(
-              r
-            )})' class="btn btn-secondary">Edit</button>
-            <button onclick="deleteResource('roles', ${
-              r.id
-            })" class="btn btn-danger">Del</button>
+            <button class="btn btn-secondary btn-edit" data-type="roles" data-id="${r.id}">Edit</button>
+            <button class="btn btn-danger btn-delete" data-type="roles" data-id="${r.id}">Del</button>
         `
         }
       </td>
@@ -182,6 +216,7 @@ async function loadRoles() {
 async function loadPermissions() {
   try {
     const perms = await apiFetch("/admin/permissions");
+    window.state.permissions = perms;
     document.getElementById("permsTable").innerHTML = perms
       .map(
         (p) => `
@@ -196,12 +231,8 @@ async function loadPermissions() {
           p.isSystem
             ? '<span class="btn btn-disabled">Protected</span>'
             : `
-            <button onclick='openEditModal("permissions", ${JSON.stringify(
-              p
-            )})' class="btn btn-secondary">Edit</button>
-            <button onclick="deleteResource('permissions', ${
-              p.id
-            })" class="btn btn-danger">Del</button>
+            <button class="btn btn-secondary btn-edit" data-type="permissions" data-id="${p.id}">Edit</button>
+            <button class="btn btn-danger btn-delete" data-type="permissions" data-id="${p.id}">Del</button>
         `
         }
       </td>
@@ -218,6 +249,7 @@ async function loadPosts() {
   try {
     const res = await fetch("/posts");
     const posts = await res.json();
+    window.state.posts = posts;
     document.getElementById("postsList").innerHTML = posts
       .map(
         (p) => `
@@ -241,9 +273,7 @@ async function loadPosts() {
                         </div>
                     </div>
                 </div>
-                <button onclick='openEditModal("posts", ${JSON.stringify(
-                  p
-                )})' class="btn btn-primary">Edit</button>
+                <button class="btn btn-primary btn-edit" data-type="posts" data-id="${p.id}">Edit</button>
             </div>
         </div>
     `
@@ -258,21 +288,36 @@ window.deleteResource = async (type, id) => {
   if (!confirm("Are you sure you want to delete this item?")) return;
 
   try {
-    const data = await apiFetch(`/admin/${type}/${id}`, { method: "DELETE" });
+    let url = `/admin/${type}/${id}`;
+    if (type === "posts") {
+      url = `/posts/${id}`;
+    }
+
+    const data = await apiFetch(url, { method: "DELETE" });
     showToast("Deleted", data.message, "success");
 
     if (type === "users") loadUsers();
     if (type === "roles") loadRoles();
     if (type === "permissions") loadPermissions();
+    if (type === "posts") loadPosts();
   } catch (e) {
     showToast("Error", e.message, "error");
   }
 };
 
-window.openEditModal = async (type, data) => {
+window.openEditModal = async (type, id) => {
   const modal = document.getElementById("editModal");
   const title = document.getElementById("modalTitle");
   const fields = document.getElementById("modalFields");
+
+  // Find data from state
+  let data = null;
+  if (type === 'users') data = window.state.users.find(u => u.id == id);
+  if (type === 'roles') data = window.state.roles.find(r => r.id == id);
+  if (type === 'permissions') data = window.state.permissions.find(p => p.id == id);
+  if (type === 'posts') data = window.state.posts.find(p => p.id == id);
+
+  if (!data) return;
 
   document.getElementById("editId").value = data.id;
   document.getElementById("editType").value = type;
@@ -377,7 +422,7 @@ document.getElementById("editForm").addEventListener("submit", async (e) => {
   e.preventDefault();
   const type = document.getElementById("editType").value;
   const id = document.getElementById("editId").value;
-  const token = localStorage.getItem("accessToken");
+
 
   if (type === "posts") {
     const formData = new FormData();
@@ -394,7 +439,7 @@ document.getElementById("editForm").addEventListener("submit", async (e) => {
     try {
       const res = await fetch(`/posts/${id}`, {
         method: "PUT",
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {},
         body: formData,
       });
       const result = await res.json();
@@ -557,14 +602,12 @@ document
       formData.append("image", imageInput.files[0]);
     }
 
-    const token = localStorage.getItem("accessToken");
+
 
     try {
       const res = await fetch("/posts", {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: {},
         body: formData,
       });
 

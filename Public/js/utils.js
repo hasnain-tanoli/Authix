@@ -29,10 +29,8 @@ function createToastContainer() {
 }
 
 async function apiFetch(url, options = {}) {
-  const token = localStorage.getItem("accessToken");
   const defaultHeaders = {
     "Content-Type": "application/json",
-    Authorization: `Bearer ${token}`,
   };
 
   try {

@@ -14,21 +14,21 @@
         <div class="sidebar-logo">Authix<span>.</span></div>
         <div class="menu-group">
           <div class="menu-title">Menu</div>
-          <div class="menu-item active" onclick="switchView('dashboard')">
+          <div class="menu-item active" id="nav-dashboard" data-view="dashboard">
             Dashboard
           </div>
-          <div class="menu-item" onclick="switchView('posts')">Posts</div>
+          <div class="menu-item" id="nav-posts" data-view="posts">Posts</div>
         </div>
         <div id="adminLinks" style="display: none" class="menu-group">
           <div class="menu-title">Administration</div>
-          <div class="menu-item" onclick="switchView('users')">Users</div>
-          <div class="menu-item" onclick="switchView('roles')">Roles</div>
-          <div class="menu-item" onclick="switchView('permissions')">
+          <div class="menu-item" id="nav-users" data-view="users">Users</div>
+          <div class="menu-item" id="nav-roles" data-view="roles">Roles</div>
+          <div class="menu-item" id="nav-permissions" data-view="permissions">
             Permissions
           </div>
         </div>
         <div style="margin-top: auto">
-          <div class="menu-item logout" onclick="logoutUser()">Logout</div>
+          <div class="menu-item logout" id="nav-logout">Logout</div>
         </div>
       </nav>
 
@@ -251,7 +251,7 @@
         <div class="modal-content">
           <div class="modal-header">
             <h3 id="modalTitle">Edit Item</h3>
-            <button onclick="closeModal()" class="btn btn-secondary">X</button>
+            <button id="modalCloseBtn" class="btn btn-secondary">X</button>
           </div>
           <form id="editForm" enctype="multipart/form-data">
             <input type="hidden" id="editId" />
@@ -259,8 +259,7 @@
             <div id="modalFields"></div>
             <div class="modal-footer">
               <button
-                type="button"
-                onclick="closeModal()"
+                id="modalCancelBtn"
                 class="btn btn-secondary"
               >
                 Cancel

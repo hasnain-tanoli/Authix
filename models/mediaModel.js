@@ -23,6 +23,10 @@ const createMediaModel = (sequelize) => {
       type: DataTypes.INTEGER,
       allowNull: false,
     },
+    data: {
+      type: DataTypes.BLOB("long"),
+      allowNull: true,
+    },
   });
   return Media;
 };

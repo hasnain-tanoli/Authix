@@ -48,6 +48,22 @@ export const connectDB = async (database, username, password, host) => {
     Post.hasMany(PostHistory, { foreignKey: "postId", onDelete: "CASCADE" });
     PostHistory.belongsTo(Post, { foreignKey: "postId" });
 
+    Post.belongsTo(Media, { as: "featuredImage", foreignKey: "featuredImageId" });
+
+    try {
+      // Fix for schema migration: String -> BLOB (Previous fix)
+      // Now we are moving to Media model, so we might need to drop the old column if it exists or just let sync handle it (it might error if we don't drop)
+      // Let's drop the old columns to be clean
+      await sequelize.query(
+        'ALTER TABLE "Posts" DROP COLUMN IF EXISTS "featuredImage";'
+      );
+      await sequelize.query(
+        'ALTER TABLE "Posts" DROP COLUMN IF EXISTS "featuredImageType";'
+      );
+    } catch (e) {
+      // Ignore
+    }
+
     await sequelize.sync({ alter: true });
     console.log("Database synced with new SEO, Media, and Versioning models.");
   } catch (error) {

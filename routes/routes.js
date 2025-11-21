@@ -36,16 +36,12 @@ import {
 } from "../controllers/adminController.js";
 import { getDashboardStats } from "../controllers/statsController.js";
 
+import { getMedia } from "../controllers/mediaController.js";
+
 const router = express.Router();
 
 // --- MULTER CONFIGURATION ---
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, "uploads/"),
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, `${uuidv4()}${ext}`);
-  },
-});
+const storage = multer.memoryStorage();
 
 const upload = multer({
   storage,
@@ -77,6 +73,9 @@ router.get(
   verifyRole("admin"),
   getDashboardStats
 );
+
+// --- MEDIA ROUTES ---
+router.get("/media/:id", getMedia);
 
 // --- POST ROUTES (CMS) ---
 router.get("/posts", getAllPosts);
