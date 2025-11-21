@@ -1,12 +1,42 @@
 import { Post, User } from "../db/connection.js";
+import { Op } from "sequelize";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const generateSlug = (title) => {
+  return title
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, "")
+    .replace(/[\s_-]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+};
 
 export const createPost = async (req, res) => {
   try {
-    const { title, content, slug, status } = req.body;
+    let { title, content, slug, status } = req.body;
 
-    const existingPost = await Post.findOne({ where: { slug } });
-    if (existingPost) {
-      return res.status(400).json({ error: "Slug must be unique" });
+    if (!slug || slug.trim() === "") {
+      slug = generateSlug(title);
+    } else {
+      slug = generateSlug(slug);
+    }
+
+    let uniqueSlug = slug;
+    let counter = 1;
+    while (await Post.findOne({ where: { slug: uniqueSlug } })) {
+      uniqueSlug = `${slug}-${counter}`;
+      counter++;
+    }
+    slug = uniqueSlug;
+
+    let featuredImage = null;
+    if (req.file) {
+      featuredImage = `/uploads/${req.file.filename}`;
     }
 
     const post = await Post.create({
@@ -14,6 +44,7 @@ export const createPost = async (req, res) => {
       content,
       slug,
       status: status || "draft",
+      featuredImage,
       authorId: req.user.id,
       publishedAt: status === "published" ? new Date() : null,
     });
@@ -21,7 +52,59 @@ export const createPost = async (req, res) => {
     res.status(201).json(post);
   } catch (error) {
     console.error(error);
+    if (req.file) {
+      const filePath = path.join(__dirname, "../uploads", req.file.filename);
+      fs.unlink(filePath, (err) => {
+        if (err) console.error("Failed to delete uploaded file:", err);
+      });
+    }
     res.status(500).json({ error: "Failed to create post" });
+  }
+};
+
+export const updatePost = async (req, res) => {
+  try {
+    const { id } = req.params;
+    let { title, content, slug, status } = req.body;
+
+    const post = await Post.findByPk(id);
+    if (!post) return res.status(404).json({ error: "Post not found" });
+
+    if (title) post.title = title;
+    if (content) post.content = content;
+    if (status) post.status = status;
+
+    if (slug && slug !== post.slug) {
+      let uniqueSlug = generateSlug(slug);
+      let counter = 1;
+      while (
+        await Post.findOne({ where: { slug: uniqueSlug, id: { [Op.ne]: id } } })
+      ) {
+        uniqueSlug = `${generateSlug(slug)}-${counter}`;
+        counter++;
+      }
+      post.slug = uniqueSlug;
+    }
+
+    if (req.file) {
+      post.featuredImage = `/uploads/${req.file.filename}`;
+    }
+
+    if (status === "published" && !post.publishedAt) {
+      post.publishedAt = new Date();
+    }
+
+    await post.save();
+    res.json({ message: "Post updated successfully", post });
+  } catch (error) {
+    console.error(error);
+    if (req.file) {
+      const filePath = path.join(__dirname, "../uploads", req.file.filename);
+      fs.unlink(filePath, (err) => {
+        if (err) console.error("Failed to delete uploaded file:", err);
+      });
+    }
+    res.status(500).json({ error: "Failed to update post" });
   }
 };
 

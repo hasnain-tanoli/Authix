@@ -1,34 +1,42 @@
-import { Role, Permission, User } from "../db/connection.js";
+import { Role, Permission, User, sequelize } from "../db/connection.js";
 import bcrypt from "bcrypt";
 
 export const createUser = async (req, res) => {
+  const t = await sequelize.transaction();
   try {
     const { name, username, email, password, roleIds } = req.body;
 
     const existingEmail = await User.findOne({ where: { email } });
     if (existingEmail) {
+      await t.rollback();
       return res.status(400).json({ error: "Email already in use" });
     }
 
     const existingUsername = await User.findOne({ where: { username } });
     if (existingUsername) {
+      await t.rollback();
       return res.status(400).json({ error: "Username already taken" });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const user = await User.create({
-      name,
-      username,
-      email,
-      password: hashedPassword,
-    });
+    const user = await User.create(
+      {
+        name,
+        username,
+        email,
+        password: hashedPassword,
+      },
+      { transaction: t }
+    );
 
     if (roleIds && Array.isArray(roleIds)) {
-      await user.setRoles(roleIds);
+      await user.setRoles(roleIds, { transaction: t });
     }
 
+    await t.commit();
     res.status(201).json({ message: "User created successfully", user });
   } catch (error) {
+    await t.rollback();
     console.error("Error in createUser:", error);
     res.status(500).json({ error: "Failed to create user" });
   }
@@ -49,38 +57,50 @@ export const getAllUsers = async (req, res) => {
 };
 
 export const updateUser = async (req, res) => {
+  const t = await sequelize.transaction();
   try {
     const { name, email, username, roleIds } = req.body;
     const user = await User.findByPk(req.params.id);
 
-    if (!user) return res.status(404).json({ error: "User not found" });
-    if (user.isSystem)
+    if (!user) {
+      await t.rollback();
+      return res.status(404).json({ error: "User not found" });
+    }
+    if (user.isSystem) {
+      await t.rollback();
       return res.status(403).json({ error: "Cannot edit System User" });
+    }
 
     if (email && email !== user.email) {
       const emailExists = await User.findOne({ where: { email } });
-      if (emailExists)
+      if (emailExists) {
+        await t.rollback();
         return res.status(400).json({ error: "Email already in use" });
+      }
     }
 
     if (username && username !== user.username) {
       const usernameExists = await User.findOne({ where: { username } });
-      if (usernameExists)
+      if (usernameExists) {
+        await t.rollback();
         return res.status(400).json({ error: "Username already taken" });
+      }
     }
 
     user.name = name || user.name;
     user.email = email || user.email;
     user.username = username || user.username;
 
-    await user.save();
+    await user.save({ transaction: t });
 
     if (roleIds && Array.isArray(roleIds)) {
-      await user.setRoles(roleIds);
+      await user.setRoles(roleIds, { transaction: t });
     }
 
+    await t.commit();
     res.json({ message: "User updated successfully" });
   } catch (error) {
+    await t.rollback();
     console.error("Error in updateUser:", error);
     res.status(500).json({ error: "Update failed" });
   }
@@ -102,21 +122,26 @@ export const deleteUser = async (req, res) => {
 };
 
 export const createRole = async (req, res) => {
+  const t = await sequelize.transaction();
   try {
     const { name, description, permissionIds } = req.body;
 
     const existing = await Role.findOne({ where: { name } });
-    if (existing)
+    if (existing) {
+      await t.rollback();
       return res.status(400).json({ error: "Role name already exists" });
-
-    const role = await Role.create({ name, description });
-
-    if (permissionIds && Array.isArray(permissionIds)) {
-      await role.setPermissions(permissionIds);
     }
 
+    const role = await Role.create({ name, description }, { transaction: t });
+
+    if (permissionIds && Array.isArray(permissionIds)) {
+      await role.setPermissions(permissionIds, { transaction: t });
+    }
+
+    await t.commit();
     res.status(201).json({ message: "Role created", role });
   } catch (error) {
+    await t.rollback();
     console.error("Error in createRole:", error);
     res.status(500).json({ error: "Failed to create role" });
   }
@@ -139,31 +164,41 @@ export const getAllRoles = async (req, res) => {
 };
 
 export const updateRole = async (req, res) => {
+  const t = await sequelize.transaction();
   try {
     const { name, description, permissionIds } = req.body;
     const role = await Role.findByPk(req.params.id);
 
-    if (!role) return res.status(404).json({ error: "Role not found" });
-    if (role.isSystem)
+    if (!role) {
+      await t.rollback();
+      return res.status(404).json({ error: "Role not found" });
+    }
+    if (role.isSystem) {
+      await t.rollback();
       return res.status(403).json({ error: "Cannot edit System Role" });
+    }
 
     if (name && name !== role.name) {
       const exists = await Role.findOne({ where: { name } });
-      if (exists)
+      if (exists) {
+        await t.rollback();
         return res.status(400).json({ error: "Role name already exists" });
+      }
     }
 
     role.name = name || role.name;
     role.description = description || role.description;
 
-    await role.save();
+    await role.save({ transaction: t });
 
     if (permissionIds && Array.isArray(permissionIds)) {
-      await role.setPermissions(permissionIds);
+      await role.setPermissions(permissionIds, { transaction: t });
     }
 
+    await t.commit();
     res.json({ message: "Role updated successfully" });
   } catch (error) {
+    await t.rollback();
     console.error("Error in updateRole:", error);
     res.status(500).json({ error: "Update failed" });
   }

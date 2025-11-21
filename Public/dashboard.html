@@ -33,6 +33,7 @@
       </nav>
 
       <main class="main-content">
+        <!-- DASHBOARD VIEW -->
         <section id="view-dashboard" class="view-section active">
           <div class="view-header"><h2>Overview</h2></div>
           <div class="stats-grid" id="statsGrid"></div>
@@ -53,6 +54,7 @@
           </div>
         </section>
 
+        <!-- USERS VIEW -->
         <section id="view-users" class="view-section">
           <div class="view-header">
             <h2>User Management</h2>
@@ -114,6 +116,7 @@
           </div>
         </section>
 
+        <!-- ROLES VIEW -->
         <section id="view-roles" class="view-section">
           <div class="view-header"><h2>Roles</h2></div>
           <div class="card">
@@ -149,6 +152,7 @@
           </div>
         </section>
 
+        <!-- PERMISSIONS VIEW -->
         <section id="view-permissions" class="view-section">
           <div class="view-header"><h2>Permissions</h2></div>
           <div class="card">
@@ -185,11 +189,13 @@
           </div>
         </section>
 
+        <!-- POSTS VIEW -->
         <section id="view-posts" class="view-section">
           <div class="view-header"><h2>Content</h2></div>
+
           <div class="card">
             <h3>Create Post</h3>
-            <form id="createPostForm">
+            <form id="createPostForm" enctype="multipart/form-data">
               <div class="form-row">
                 <input
                   type="text"
@@ -197,12 +203,33 @@
                   placeholder="Title"
                   required
                 />
-                <input type="text" id="postSlug" placeholder="Slug" required />
+                <!-- Slug is auto-generated but can be edited -->
+                <input
+                  type="text"
+                  id="postSlug"
+                  placeholder="Slug (auto-generated)"
+                />
               </div>
+
+              <div class="form-row">
+                <div style="flex: 1">
+                  <label class="field-label">Status</label>
+                  <select id="postStatus">
+                    <option value="draft">Draft</option>
+                    <option value="published">Published</option>
+                    <option value="archived">Archived</option>
+                  </select>
+                </div>
+                <div style="flex: 1">
+                  <label class="field-label">Featured Image</label>
+                  <input type="file" id="postImage" accept="image/*" />
+                </div>
+              </div>
+
               <textarea
                 id="postContent"
-                placeholder="Content..."
-                rows="4"
+                placeholder="Write your story..."
+                rows="6"
                 required
               ></textarea>
               <button
@@ -210,21 +237,23 @@
                 class="btn btn-primary"
                 style="margin-top: 10px"
               >
-                Publish
+                Create Post
               </button>
             </form>
           </div>
+
           <div id="postsList"></div>
         </section>
       </main>
 
+      <!-- GENERAL EDIT MODAL -->
       <div class="modal-overlay" id="editModal">
         <div class="modal-content">
           <div class="modal-header">
             <h3 id="modalTitle">Edit Item</h3>
             <button onclick="closeModal()" class="btn btn-secondary">X</button>
           </div>
-          <form id="editForm">
+          <form id="editForm" enctype="multipart/form-data">
             <input type="hidden" id="editId" />
             <input type="hidden" id="editType" />
             <div id="modalFields"></div>

@@ -49,7 +49,7 @@ const dbUsername = process.env.DB_USERNAME;
 const dbPassword = process.env.DB_PASSWORD;
 const dbHost = process.env.DB_HOST;
 
-connectDB(dbName, dbUsername, dbPassword, dbHost);
+await connectDB(dbName, dbUsername, dbPassword, dbHost);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

@@ -8,14 +8,16 @@ import createRolePermissionModel from "../models/rolePermissionModel.js";
 import createMediaModel from "../models/mediaModel.js";
 import createPostHistoryModel from "../models/postHistoryModel.js";
 
-let User, Role, Post, Permission, UserRole, RolePermission, Media, PostHistory;
+let User, Role, Post, Permission, UserRole, RolePermission, Media, PostHistory, sequelize;
 
 export const connectDB = async (database, username, password, host) => {
   if (User) return;
 
+  console.log("Attempting to connect to database...");
+
   const isLocal = host === "localhost" || host === "127.0.0.1";
 
-  const sequelize = new Sequelize(database, username, password, {
+  sequelize = new Sequelize(database, username, password, {
     host: host || "localhost",
     dialect: "postgres",
     dialectOptions: {
@@ -37,19 +39,20 @@ export const connectDB = async (database, username, password, host) => {
     UserRole = createUserRoleModel(sequelize, { User, Role });
     RolePermission = createRolePermissionModel(sequelize, { Role, Permission });
 
-    User.hasMany(Post, { foreignKey: "authorId" });
+    User.hasMany(Post, { foreignKey: "authorId", onDelete: "CASCADE" });
     Post.belongsTo(User, { foreignKey: "authorId" });
 
-    User.hasMany(Media, { foreignKey: "uploaderId" });
+    User.hasMany(Media, { foreignKey: "uploaderId", onDelete: "CASCADE" });
     Media.belongsTo(User, { foreignKey: "uploaderId" });
 
-    Post.hasMany(PostHistory, { foreignKey: "postId" });
+    Post.hasMany(PostHistory, { foreignKey: "postId", onDelete: "CASCADE" });
     PostHistory.belongsTo(Post, { foreignKey: "postId" });
 
     await sequelize.sync({ alter: true });
     console.log("Database synced with new SEO, Media, and Versioning models.");
   } catch (error) {
     console.error("DB Connection Error:", error);
+    process.exit(1);
   }
 };
 
@@ -62,4 +65,5 @@ export {
   PostHistory,
   UserRole,
   RolePermission,
+  sequelize,
 };

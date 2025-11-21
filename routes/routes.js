@@ -16,6 +16,7 @@ import {
   getAllPosts,
   getPostBySlug,
   deletePost,
+  updatePost,
 } from "../controllers/postController.js";
 import {
   createRole,
@@ -33,11 +34,11 @@ import {
   updateRole,
   updatePermission,
 } from "../controllers/adminController.js";
-import { uploadMedia, updatePost } from "../controllers/cmsController.js";
 import { getDashboardStats } from "../controllers/statsController.js";
 
 const router = express.Router();
 
+// --- MULTER CONFIGURATION ---
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, "uploads/"),
   filename: (req, file, cb) => {
@@ -45,14 +46,31 @@ const storage = multer.diskStorage({
     cb(null, `${uuidv4()}${ext}`);
   },
 });
-const upload = multer({ storage });
 
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const filetypes = /jpeg|jpg|png|webp|gif/;
+    const mimetype = filetypes.test(file.mimetype);
+    const extname = filetypes.test(
+      path.extname(file.originalname).toLowerCase()
+    );
+    if (mimetype && extname) {
+      return cb(null, true);
+    }
+    cb(new Error("Only images are allowed"));
+  },
+});
+
+// --- AUTH ROUTES ---
 router.post("/signup", handleSignup);
 router.post("/login", handleLogin);
 router.post("/token", handleRefreshToken);
 router.post("/logout", handleLogout);
 router.get("/profile", authenticateToken, getUserProfile);
 
+// --- DASHBOARD STATS ---
 router.get(
   "/admin/stats",
   authenticateToken,
@@ -60,29 +78,29 @@ router.get(
   getDashboardStats
 );
 
+// --- POST ROUTES (CMS) ---
 router.get("/posts", getAllPosts);
 router.get("/posts/:slug", getPostBySlug);
+
 router.post(
   "/posts",
   authenticateToken,
   verifyRole("admin", "editor"),
+  upload.single("image"),
   createPost
 );
+
 router.put(
   "/posts/:id",
   authenticateToken,
   verifyRole("admin", "editor"),
+  upload.single("image"),
   updatePost
 );
-router.delete("/posts/:id", authenticateToken, verifyRole("admin"), deletePost);
-router.post(
-  "/upload",
-  authenticateToken,
-  verifyRole("admin", "editor"),
-  upload.single("file"),
-  uploadMedia
-);
 
+router.delete("/posts/:id", authenticateToken, verifyRole("admin"), deletePost);
+
+// --- ADMIN: USERS ---
 router.get("/admin/users", authenticateToken, verifyRole("admin"), getAllUsers);
 router.post("/admin/users", authenticateToken, verifyRole("admin"), createUser);
 router.put(
@@ -104,6 +122,7 @@ router.post(
   assignRoleToUser
 );
 
+// --- ADMIN: ROLES ---
 router.get("/admin/roles", authenticateToken, verifyRole("admin"), getAllRoles);
 router.post("/admin/roles", authenticateToken, verifyRole("admin"), createRole);
 router.put(
@@ -119,6 +138,7 @@ router.delete(
   deleteRole
 );
 
+// --- ADMIN: PERMISSIONS ---
 router.get(
   "/admin/permissions",
   authenticateToken,
