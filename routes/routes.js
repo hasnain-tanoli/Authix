@@ -79,6 +79,7 @@ router.get("/media/:id", getMedia);
 
 // --- POST ROUTES (CMS) ---
 router.get("/posts", getAllPosts);
+router.get("/posts/slug/:slug", getPostBySlug);
 router.get("/posts/:slug", getPostBySlug);
 
 router.post(

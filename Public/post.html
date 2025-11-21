@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Post | Authix</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    .post-container {
+      max-width: 900px;
+      margin: 40px auto;
+      padding: 0 20px;
+    }
+
+    .post-header {
+      margin-bottom: 40px;
+    }
+
+    .post-title {
+      font-size: 3rem;
+      font-weight: 700;
+      margin: 0 0 20px 0;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      line-height: 1.2;
+    }
+
+    .post-meta {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      color: #94a3b8;
+      font-size: 0.95rem;
+      margin-bottom: 30px;
+    }
+
+    .post-meta-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .post-featured-image {
+      width: 100%;
+      max-height: 500px;
+      object-fit: cover;
+      border-radius: 16px;
+      margin-bottom: 40px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+
+    .post-content {
+      font-size: 1.125rem;
+      line-height: 1.8;
+      color: #e2e8f0;
+      margin-bottom: 60px;
+      white-space: pre-wrap;
+    }
+
+    .post-footer {
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      padding-top: 30px;
+      margin-top: 60px;
+    }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: #667eea;
+      text-decoration: none;
+      font-weight: 500;
+      transition: all 0.3s ease;
+    }
+
+    .back-link:hover {
+      gap: 12px;
+      color: #764ba2;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .status-published {
+      background: rgba(34, 197, 94, 0.2);
+      color: #22c55e;
+    }
+
+    .status-draft {
+      background: rgba(251, 191, 36, 0.2);
+      color: #fbbf24;
+    }
+
+    .status-archived {
+      background: rgba(148, 163, 184, 0.2);
+      color: #94a3b8;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 100px 20px;
+      color: #94a3b8;
+    }
+
+    .error {
+      text-align: center;
+      padding: 100px 20px;
+      color: #ef4444;
+    }
+  </style>
+</head>
+<body>
+  <div class="background-shapes">
+    <div class="shape shape-1"></div>
+    <div class="shape shape-2"></div>
+  </div>
+
+  <nav>
+    <a href="index.html" style="text-decoration: none; color: inherit;">
+      <div class="logo">Authix<span>.</span></div>
+    </a>
+    <div class="nav-links" id="navLinks">
+      <a href="posts.html" class="nav-btn btn-outline">All Posts</a>
+      <a href="index.html" class="nav-btn btn-fill">Home</a>
+    </div>
+  </nav>
+
+  <main class="post-container" id="postContainer">
+    <div class="loading">Loading post...</div>
+  </main>
+
+  <script src="js/auth.js"></script>
+  <script src="js/post.js"></script>
+</body>
+</html>

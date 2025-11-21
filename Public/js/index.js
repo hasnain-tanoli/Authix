@@ -74,20 +74,22 @@ async function loadRecentPosts() {
         ${recentPosts
           .map(
             (post) => `
-          <div class="post-card">
-            ${
-              post.featuredImage
-                ? `<img src="${post.featuredImage}" alt="${post.title}" class="post-image" onerror="this.style.display='none'">`
-                : ""
-            }
-            <h3 class="post-title">${post.title}</h3>
-            <div class="post-meta">
-              <span>By ${post.User?.name || "Unknown"}</span>
-              <span>•</span>
-              <span>${new Date(post.createdAt).toLocaleDateString()}</span>
+          <a href="post.html?slug=${post.slug}" style="text-decoration: none; color: inherit;">
+            <div class="post-card">
+              ${
+                post.featuredImage
+                  ? `<img src="${post.featuredImage}" alt="${post.title}" class="post-image" onerror="this.style.display='none'">`
+                  : ""
+              }
+              <h3 class="post-title">${post.title}</h3>
+              <div class="post-meta">
+                <span>By ${post.User?.name || "Unknown"}</span>
+                <span>•</span>
+                <span>${new Date(post.createdAt).toLocaleDateString()}</span>
+              </div>
+              <p class="post-excerpt">${truncateText(post.content, 100)}</p>
             </div>
-            <p class="post-excerpt">${truncateText(post.content, 100)}</p>
-          </div>
+          </a>
         `
           )
           .join("")}
