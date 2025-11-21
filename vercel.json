@@ -1,9 +1,30 @@
 {
   "version": 2,
-  "rewrites": [
+  "builds": [
     {
-      "source": "/(.*)",
-      "destination": "/server.js"
+      "src": "server.js",
+      "use": "@vercel/node"
     }
-  ]
+  ],
+  "routes": [
+    {
+      "src": "/css/(.*)",
+      "dest": "/Public/css/$1"
+    },
+    {
+      "src": "/js/(.*)",
+      "dest": "/Public/js/$1"
+    },
+    {
+      "src": "/(.*\\.(html|ico|png|jpg|jpeg|gif|svg))",
+      "dest": "/Public/$1"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/server.js"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production"
+  }
 }
