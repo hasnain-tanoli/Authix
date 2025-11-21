@@ -96,6 +96,7 @@ window.switchView = function (viewName) {
   if (viewName === "roles") loadRoles();
   if (viewName === "permissions") loadPermissions();
   if (viewName === "dashboard") loadDashboardStats();
+  if (viewName === "profile") loadProfile();
 };
 
 async function loadDashboardStats() {
@@ -630,3 +631,78 @@ document
       showToast("Error", err.message, "error");
     }
   });
+
+// Load Profile Function
+async function loadProfile() {
+  try {
+    const user = await fetchProfile();
+    
+    // Display user info
+    document.getElementById("profileName").textContent = user.name;
+    document.getElementById("profileUsername").textContent = user.username;
+    document.getElementById("profileEmail").textContent = user.email;
+    document.getElementById("profileId").textContent = user.id;
+    
+    // Display roles
+    const rolesContainer = document.getElementById("profileRoles");
+    rolesContainer.innerHTML = user.Roles.map(role => 
+      `<span class="badge badge-role">${role.name}</span>`
+    ).join("");
+    
+    // Collect all permissions from all roles
+    const allPermissions = [];
+    const permissionSet = new Set();
+    user.Roles.forEach(role => {
+      if (role.Permissions) {
+        role.Permissions.forEach(perm => {
+          if (!permissionSet.has(perm.name)) {
+            permissionSet.add(perm.name);
+            allPermissions.push(perm);
+          }
+        });
+      }
+    });
+    
+    // Display permissions
+    const permsContainer = document.getElementById("profilePermissions");
+    if (allPermissions.length > 0) {
+      permsContainer.innerHTML = allPermissions.map(perm => 
+        `<span class="badge badge-role" style="background: rgba(59, 130, 246, 0.2); color: #60a5fa;">${perm.name}</span>`
+      ).join("");
+    } else {
+      permsContainer.innerHTML = '<p style="color: #94a3b8;">No permissions assigned</p>';
+    }
+    
+    // Load user's own posts
+    const postsRes = await fetch("/posts");
+    const allPosts = await postsRes.json();
+    const userPosts = allPosts.filter(post => post.authorId === user.id);
+    
+    const postsContainer = document.getElementById("profilePosts");
+    if (userPosts.length > 0) {
+      postsContainer.innerHTML = userPosts.map(post => `
+        <div class="card" style="margin-bottom: 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div style="display: flex; gap: 15px;">
+              ${post.featuredImage ? `<img src="${post.featuredImage}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px;">` : ""}
+              <div>
+                <h4 style="margin: 0 0 8px 0;">${post.title}</h4>
+                <div>
+                  <span class="badge badge-role" style="background: rgba(255, 255, 255, 0.1); color: #fff; border: none;">${post.status}</span>
+                  <span style="color: #94a3b8; font-size: 0.85rem; margin-left: 10px;">/${post.slug}</span>
+                </div>
+                <p style="color: #94a3b8; font-size: 0.9rem; margin: 8px 0 0 0;">${new Date(post.createdAt).toLocaleDateString()}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      `).join("");
+    } else {
+      postsContainer.innerHTML = '<p style="color: #94a3b8;">You haven\'t created any posts yet.</p>';
+    }
+    
+  } catch (e) {
+    showToast("Error", "Failed to load profile", "error");
+    console.error(e);
+  }
+}
