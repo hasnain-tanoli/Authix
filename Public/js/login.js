@@ -1,8 +1,8 @@
 redirectIfAuth();
 
-document.getElementById("loginForm").addEventListener("submit", (e) => {
+document.getElementById("loginForm").addEventListener("submit", async (e) => {
   e.preventDefault();
   const email = document.getElementById("email").value;
   const pass = document.getElementById("password").value;
-  loginUser(email, pass);
+  await loginUser(email, pass);
 });

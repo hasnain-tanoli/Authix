@@ -25,7 +25,7 @@ async function redirectIfAuth() {
   try {
     const res = await fetch(`${API_URL}/profile`);
     if (res.ok) {
-      window.location.href = "/dashboard.html";
+      window.location.href = "/index.html";
     }
   } catch (e) {
     // Not authenticated, stay here
@@ -42,7 +42,8 @@ async function loginUser(usernameOrEmail, password) {
     const data = await res.json();
 
     if (res.ok) {
-      window.location.href = "/dashboard.html";
+      showToast("Login successful", "success");
+      window.location.href = "/index.html";
     } else {
       showToast(data.error || "Login failed", "error");
     }
@@ -61,7 +62,8 @@ async function signupUser(name, username, email, password) {
     const data = await res.json();
 
     if (res.ok) {
-      window.location.href = "/dashboard.html";
+      showToast("Account created successfully", "success");
+      window.location.href = "/index.html";
     } else {
       showToast(data.error || "Signup failed", "error");
     }
@@ -85,10 +87,8 @@ async function fetchProfile() {
       method: "GET",
     });
     if (res.ok) return await res.json();
-    else {
-      logoutUser();
-    }
+    throw new Error("Not authenticated");
   } catch (err) {
-    console.error(err);
+    throw err;
   }
 }

@@ -33,15 +33,16 @@ export const handleSignup = asyncHandler(async (req, res) => {
   const hashedPassword = await bcrypt.hash(password, 10);
 
   const user = await User.create({
-    username,
     name,
+    username,
     email,
     password: hashedPassword,
   });
 
-  const defaultRole = await Role.findOne({ where: { name: "user" } });
-  if (defaultRole) {
-    await user.addRole(defaultRole);
+  // Auto-assign user role to new signups
+  const userRole = await Role.findOne({ where: { name: "user" } });
+  if (userRole) {
+    await user.addRole(userRole);
   }
 
   const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(
