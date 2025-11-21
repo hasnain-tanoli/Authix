@@ -1,146 +1,59 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>All Posts - Authix</title>
-    <link rel="stylesheet" href="css/style.css" />
-    <style>
-      .posts-container {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 40px 20px;
-      }
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All Posts | Authix</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Floating Sidebar -->
+        <aside class="glass-sidebar">
+            <div>
+                <a href="index.html" class="sidebar-logo">Authix<span>.</span></a>
+                <nav class="nav-menu">
+                    <a href="index.html" class="nav-item">
+                        <span>🏠</span> Home
+                    </a>
+                    <a href="posts.html" class="nav-item active">
+                        <span>📝</span> All Posts
+                    </a>
+                    <a href="dashboard.html" class="nav-item" id="dashboardLink" style="display: none;">
+                        <span>📊</span> Dashboard
+                    </a>
+                </nav>
+            </div>
+            <div class="sidebar-footer">
+                <a href="login.html" class="nav-item" id="loginLink" style="display: none;">
+                    <span>🔑</span> Login
+                </a>
+                <a href="signup.html" class="nav-item" id="signupLink" style="display: none;">
+                    <span>✨</span> Sign Up
+                </a>
+                <a href="#" class="nav-item" id="logoutBtn" style="display: none;">
+                    <span>🚪</span> Logout
+                </a>
+            </div>
+        </aside>
 
-      .posts-header {
-        text-align: center;
-        margin-bottom: 50px;
-      }
+        <!-- Main Content -->
+        <main class="main-content">
+            <header style="margin-bottom: 40px;">
+                <h1>All Stories</h1>
+                <p>Explore the latest updates, articles, and insights.</p>
+            </header>
 
-      .posts-header h1 {
-        font-size: 3rem;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        margin-bottom: 10px;
-      }
-
-      .posts-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-        gap: 30px;
-        margin-top: 40px;
-      }
-
-      .post-card {
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 16px;
-        padding: 30px;
-        transition: all 0.3s ease;
-        backdrop-filter: blur(10px);
-      }
-
-      .post-card:hover {
-        transform: translateY(-5px);
-        border-color: rgba(102, 126, 234, 0.5);
-        box-shadow: 0 10px 40px rgba(102, 126, 234, 0.2);
-      }
-
-      .post-image {
-        width: 100%;
-        height: 200px;
-        object-fit: cover;
-        border-radius: 12px;
-        margin-bottom: 20px;
-      }
-
-      .post-title {
-        font-size: 1.5rem;
-        font-weight: 600;
-        margin-bottom: 10px;
-        color: #fff;
-      }
-
-      .post-meta {
-        display: flex;
-        gap: 15px;
-        margin-bottom: 15px;
-        font-size: 0.85rem;
-        color: #94a3b8;
-      }
-
-      .post-excerpt {
-        color: #cbd5e1;
-        line-height: 1.6;
-        margin-bottom: 20px;
-      }
-
-      .post-status {
-        display: inline-block;
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-size: 0.75rem;
-        font-weight: 600;
-        text-transform: uppercase;
-      }
-
-      .status-published {
-        background: rgba(34, 197, 94, 0.2);
-        color: #22c55e;
-      }
-
-      .status-draft {
-        background: rgba(251, 191, 36, 0.2);
-        color: #fbbf24;
-      }
-
-      .no-posts {
-        text-align: center;
-        padding: 60px 20px;
-        color: #94a3b8;
-        font-size: 1.2rem;
-      }
-
-      .loading {
-        text-align: center;
-        padding: 60px 20px;
-        color: #94a3b8;
-        font-size: 1.2rem;
-      }
-    </style>
-  </head>
-  <body>
-    <div class="background-shapes">
-      <div class="shape shape-1"></div>
-      <div class="shape shape-2"></div>
+            <!-- Posts Grid -->
+            <div class="masonry-grid" id="postsContent">
+                <div class="bento-card span-12">
+                    <p>Loading posts...</p>
+                </div>
+            </div>
+        </main>
     </div>
 
-    <nav>
-      <div class="logo">Authix<span>.</span></div>
-      <div class="nav-links" id="navLinks">
-        <a href="index.html" class="nav-btn btn-outline">Home</a>
-        <a href="posts.html" class="nav-btn btn-outline">Posts</a>
-        <a href="#" id="dashboardLink" class="nav-btn btn-outline" style="display: none;">Dashboard</a>
-        <a href="#" id="logoutBtn" class="nav-btn btn-fill" style="display: none;">Logout</a>
-        <a href="login.html" id="loginLink" class="nav-btn btn-outline">Login</a>
-        <a href="signup.html" id="signupLink" class="nav-btn btn-fill">Sign Up</a>
-      </div>
-    </nav>
-
-    <main class="posts-container">
-      <div class="posts-header">
-        <h1>All Posts</h1>
-        <p style="color: #94a3b8; font-size: 1.1rem;">Explore our latest articles and updates</p>
-      </div>
-
-      <div id="postsContent">
-        <div class="loading">Loading posts...</div>
-      </div>
-    </main>
-
-    <script src="js/utils.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/posts.js"></script>
-  </body>
+</body>
 </html>

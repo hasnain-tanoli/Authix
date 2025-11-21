@@ -1,304 +1,171 @@
+// --- GLOBAL STATE & HELPERS ---
 let currentUser = null;
+window.state = { users: [], roles: [], permissions: [], posts: [] };
+let modalContext = { type: null, mode: null, id: null };
 
-// Helper function to check if current user has a specific permission
+// Helper: Check Permission
 function hasPermission(permissionName) {
   if (!currentUser || !currentUser.Roles) return false;
-  
   return currentUser.Roles.some(role => 
     role.Permissions && role.Permissions.some(perm => perm.name === permissionName)
   );
 }
 
-// Helper function to get all user permissions
-function getUserPermissions() {
-  if (!currentUser || !currentUser.Roles) return [];
-  
-  const permissions = new Set();
-  currentUser.Roles.forEach(role => {
-    if (role.Permissions) {
-      role.Permissions.forEach(perm => permissions.add(perm.name));
-    }
-  });
-  
-  return Array.from(permissions);
-}
-
-const generateSlug = (text) => {
-  return text
-    .toString()
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, "-")
-    .replace(/[^\w\-]+/g, "")
-    .replace(/\-\-+/g, "-");
-};
-
-document.getElementById("postTitle").addEventListener("input", (e) => {
-  const slugField = document.getElementById("postSlug");
-  if (!slugField.getAttribute("data-manually-edited")) {
-    slugField.value = generateSlug(e.target.value);
-  }
-});
-
-document.getElementById("postSlug").addEventListener("input", (e) => {
-  e.target.setAttribute("data-manually-edited", "true");
-});
-
-// Global state for data lookups
-window.state = {
-  users: [],
-  roles: [],
-  permissions: [],
-  posts: []
-};
-
-window.addEventListener("DOMContentLoaded", async () => {
-  requireAuth();
-  setupEventListeners();
+// --- INITIALIZATION ---
+document.addEventListener("DOMContentLoaded", async () => {
   try {
+    await requireAuth();
     currentUser = await fetchProfile();
-    if (currentUser) {
-      const roles = currentUser.Roles.map((r) => r.name);
-      
-      // Permission-based Dashboard Initialization
-      const adminLinksContainer = document.getElementById("adminLinks");
-      let hasAdminAccess = false;
-
-      // Show users menu if has users.read permission
-      if (hasPermission("users.read")) {
-        document.getElementById("nav-users").style.display = "block";
-        hasAdminAccess = true;
-      } else {
-        document.getElementById("nav-users").style.display = "none";
-      }
-      
-      // Show roles menu if has roles.read permission
-      if (hasPermission("roles.read")) {
-        document.getElementById("nav-roles").style.display = "block";
-        hasAdminAccess = true;
-      } else {
-        document.getElementById("nav-roles").style.display = "none";
-      }
-      
-      // Show permissions menu if has permissions.read permission
-      if (hasPermission("permissions.read")) {
-        document.getElementById("nav-permissions").style.display = "block";
-        hasAdminAccess = true;
-      } else {
-        document.getElementById("nav-permissions").style.display = "none";
-      }
-
-      // Show Administration header if any admin access
-      if (hasAdminAccess) {
-        adminLinksContainer.style.display = "block";
-        populateCreationForms();
-      }
-
-      // Load Dashboard Stats if has dashboard.read permission
-      if (hasPermission("dashboard.read")) {
-        loadDashboardStats();
-      } else {
-        // Hide dashboard view/menu if no permission
-        const dashboardMenu = document.getElementById("nav-dashboard");
-        if (dashboardMenu) dashboardMenu.style.display = "none";
-        
-        // If currently on dashboard view, switch to something else
-        const currentView = document.querySelector(".view-section.active");
-        if (currentView && currentView.id === "view-dashboard") {
-           // Will be handled by default view logic below
-        }
-      }
-      
-      // Determine default view based on available permissions
-      if (hasPermission("dashboard.read")) {
-        // Stay on dashboard or switch to it
-        // switchView("dashboard"); // Already default in HTML
-      } else if (hasPermission("posts.read")) {
-        switchView("posts");
-      } else if (hasPermission("users.read")) {
-        switchView("users");
-      } else if (hasPermission("roles.read")) {
-        switchView("roles");
-      } else if (hasPermission("permissions.read")) {
-        switchView("permissions");
-      } else {
-        switchView("profile"); // Default to profile if no other permissions
-      }
-      
-      // Hide posts menu if user doesn't have posts.read permission
-      if (!hasPermission("posts.read")) {
-        const postsMenu = document.getElementById("nav-posts");
-        if (postsMenu) postsMenu.style.display = "none";
-      }
-      
-      // Hide create forms based on permissions
-      if (!hasPermission("posts.create")) {
-        const createPostCard = document.getElementById("createPostCard");
-        if (createPostCard) createPostCard.style.display = "none";
-      }
-      
-      if (!hasPermission("users.create")) {
-        const createUserCard = document.getElementById("createUserCard");
-        if (createUserCard) createUserCard.style.display = "none";
-      }
-      
-      if (!hasPermission("roles.create")) {
-        const createRoleCard = document.getElementById("createRoleCard");
-        if (createRoleCard) createRoleCard.style.display = "none";
-      }
-      
-      if (!hasPermission("permissions.create")) {
-        const createPermissionCard = document.getElementById("createPermissionCard");
-        if (createPermissionCard) createPermissionCard.style.display = "none";
-      }
-      
-      // Only load posts if user has posts.read permission
-      if (hasPermission("posts.read")) {
-        loadPosts();
-      }
+    
+    if (!currentUser) {
+      window.location.href = "login.html";
+      return;
     }
+
+    // Check if user has dashboard.read permission
+    if (!hasPermission("dashboard.read")) {
+      window.location.href = "unauthorized.html";
+      return;
+    }
+
+    setupNavigation();
+    loadDashboardStats();
+    loadProfile(); 
+    
+    // Logout handler
+    document.getElementById("logoutBtn").addEventListener("click", (e) => {
+      e.preventDefault();
+      logoutUser();
+    });
+
   } catch (e) {
-    showToast("Error", "Failed to load profile", "error");
+    console.error("Init failed", e);
+    window.location.href = "login.html";
   }
 });
 
-function setupEventListeners() {
-  // Navigation
-  document.querySelectorAll('.menu-item[data-view]').forEach(el => {
-    el.addEventListener('click', (e) => switchView(e.currentTarget.dataset.view));
+// --- NAVIGATION ---
+function setupNavigation() {
+  const navItems = document.querySelectorAll(".nav-item[id^='nav-']");
+  
+  navItems.forEach(item => {
+    item.addEventListener("click", (e) => {
+      e.preventDefault();
+      navItems.forEach(n => n.classList.remove("active"));
+      item.classList.add("active");
+      const view = item.id.replace("nav-", "");
+      handleViewSwitch(view);
+    });
   });
-  
-  document.getElementById('nav-logout')?.addEventListener('click', logoutUser);
-  
-  // Modal
-  document.getElementById('modalCloseBtn')?.addEventListener('click', closeModal);
-  document.getElementById('modalCancelBtn')?.addEventListener('click', closeModal);
-  
-  // Event Delegation for Dynamic Content
-  document.addEventListener('click', (e) => {
-    const target = e.target.closest('button');
-    if (!target) return;
-    
-    if (target.classList.contains('btn-edit')) {
-      const type = target.dataset.type;
-      const id = target.dataset.id;
-      openEditModal(type, id);
-    }
-    
-    if (target.classList.contains('btn-delete')) {
-      const type = target.dataset.type;
-      const id = target.dataset.id;
-      deleteResource(type, id);
-    }
-  });
+
+  if (!hasPermission("users.read")) document.getElementById("nav-users").style.display = "none";
+  if (!hasPermission("roles.read")) document.getElementById("nav-roles").style.display = "none";
+  if (!hasPermission("permissions.read")) document.getElementById("nav-permissions").style.display = "none";
 }
 
-window.switchView = function (viewName) {
-  document
-    .querySelectorAll(".menu-item")
-    .forEach((el) => el.classList.remove("active"));
-  event.currentTarget.classList.add("active");
+function handleViewSwitch(view) {
+  const container = document.getElementById("dynamicContent");
+  const title = document.getElementById("managementTitle");
+  const createBtn = document.getElementById("createBtn");
+  
+  container.innerHTML = '<div style="text-align:center; padding:40px;">Loading...</div>';
+  createBtn.style.display = "none";
+  
+  switch(view) {
+    case "dashboard":
+      title.innerText = "Recent System Activity";
+      loadProfile(); 
+      break;
+    case "users":
+      title.innerText = "User Management";
+      if (hasPermission("users.create")) {
+        createBtn.style.display = "block";
+        createBtn.onclick = () => openCreateModal("users");
+      }
+      loadUsers();
+      break;
+    case "roles":
+      title.innerText = "Role Management";
+      if (hasPermission("roles.create")) {
+        createBtn.style.display = "block";
+        createBtn.onclick = () => openCreateModal("roles");
+      }
+      loadRoles();
+      break;
+    case "permissions":
+      title.innerText = "Permission Management";
+      if (hasPermission("permissions.create")) {
+        createBtn.style.display = "block";
+        createBtn.onclick = () => openCreateModal("permissions");
+      }
+      loadPermissions();
+      break;
+    case "posts":
+      title.innerText = "Post Management";
+      if (hasPermission("posts.create")) {
+        createBtn.style.display = "block";
+        createBtn.onclick = () => openCreateModal("posts");
+      }
+      loadPosts();
+      break;
+  }
+}
 
-  document
-    .querySelectorAll(".view-section")
-    .forEach((el) => el.classList.remove("active"));
-  document.getElementById(`view-${viewName}`).classList.add("active");
-
-  if (viewName === "users") loadUsers();
-  if (viewName === "roles") loadRoles();
-  if (viewName === "permissions") loadPermissions();
-  if (viewName === "dashboard") loadDashboardStats();
-  if (viewName === "posts") loadPosts();
-  if (viewName === "profile") loadProfile();
-};
-
+// --- DATA LOADING ---
 async function loadDashboardStats() {
   try {
     const data = await apiFetch("/admin/stats");
-
-    const grid = document.getElementById("statsGrid");
-    let statsHtml = "";
-
-    if (hasPermission("users.read")) {
-      statsHtml += `
-        <div class="stat-card">
-            <div class="stat-number">${data.counts.users}</div>
-            <div class="stat-label">Total Users</div>
-        </div>`;
+    updateStatRing("stat-users-ring", data.counts.users, 100); 
+    updateStatRing("stat-posts-ring", data.counts.posts, 50);
+    updateStatRing("stat-roles-ring", data.counts.roles, 10);
+    updateStatRing("stat-perms-ring", data.counts.permissions, 20);
+    window.state.recentActivity = data.recentActivity;
+    if (document.getElementById("nav-dashboard").classList.contains("active")) {
+        renderRecentActivity();
     }
-
-    if (hasPermission("posts.read")) {
-      statsHtml += `
-        <div class="stat-card">
-            <div class="stat-number">${data.counts.posts}</div>
-            <div class="stat-label">Published Posts</div>
-        </div>`;
-    }
-
-    if (hasPermission("roles.read")) {
-      statsHtml += `
-        <div class="stat-card">
-            <div class="stat-number">${data.counts.roles}</div>
-            <div class="stat-label">Active Roles</div>
-        </div>`;
-    }
-
-    if (hasPermission("permissions.read")) {
-      statsHtml += `
-        <div class="stat-card">
-            <div class="stat-number">${data.counts.permissions}</div>
-            <div class="stat-label">Permissions</div>
-        </div>`;
-    }
-
-    grid.innerHTML = statsHtml;
-
-    const tbody = document.getElementById("recentActivityTable");
-    tbody.innerHTML = data.recentActivity
-      .map(
-        (post) => `
-      <tr>
-        <td>${post.title}</td>
-        <td>${post.User?.name || "Unknown"}</td>
-        <td>${new Date(post.createdAt).toLocaleDateString()}</td>
-      </tr>
-    `
-      )
-      .join("");
   } catch (e) {
-    console.error(e);
+    console.error("Stats load error", e);
   }
+}
+
+function updateStatRing(id, value, max) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const percent = Math.min(100, Math.max(0, (value / max) * 100));
+  el.style.setProperty("--percent", `${percent}%`);
+  el.setAttribute("data-value", value);
 }
 
 async function loadUsers() {
   try {
     const users = await apiFetch("/admin/users");
     window.state.users = users;
-    document.getElementById("usersTable").innerHTML = users
-      .map(
-        (u) => `
-    <tr>
-      <td><strong>${u.name}</strong><br><small>@${u.username}</small> ${
-          u.isSystem ? '<span class="badge badge-system">SYS</span>' : ""
-        }</td>
-      <td>${u.email}</td>
-      <td>${u.Roles.map(
-        (r) => `<span class="badge badge-role">${r.name}</span>`
-      ).join(" ")}</td>
-      <td>
-        ${
-          u.isSystem
-            ? '<span class="btn btn-disabled">Protected</span>'
-            : `
-            ${hasPermission("users.update") ? `<button class="btn btn-secondary btn-edit" data-type="users" data-id="${u.id}">Edit</button>` : ''}
-            ${hasPermission("users.delete") ? `<button class="btn btn-danger btn-delete" data-type="users" data-id="${u.id}">Del</button>` : ''}
-        `
-        }
-      </td>
-    </tr>
-  `
-      )
-      .join("");
+    const container = document.getElementById("dynamicContent");
+    if (users.length === 0) {
+      container.innerHTML = '<p class="text-secondary">No users found.</p>';
+      return;
+    }
+    container.innerHTML = `
+      <div class="table-container">
+        <table class="table-ceramic">
+          <thead><tr><th>User</th><th>Email</th><th>Roles</th><th>Actions</th></tr></thead>
+          <tbody>
+            ${users.map(u => `
+              <tr>
+                <td><div style="font-weight:600;">${u.name}</div><div style="font-size:0.85rem; color:var(--text-tertiary);">@${u.username}</div></td>
+                <td>${u.email}</td>
+                <td><div style="display:flex; gap:4px; flex-wrap:wrap;">${u.Roles.map(r => `<span class="badge badge-role">${r.name}</span>`).join("")}</div></td>
+                <td><div class="action-btn-group">
+                    ${!u.isSystem && hasPermission("users.update") ? `<button class="btn-outline btn-sm" onclick="openEditModal('users', ${u.id})">Edit</button>` : ''}
+                    ${!u.isSystem && hasPermission("users.delete") ? `<button class="btn-outline btn-sm" style="color:var(--danger); border-color:var(--danger);" onclick="deleteResource('users', ${u.id})">Delete</button>` : ''}
+                    ${u.isSystem ? '<span class="badge badge-system">System</span>' : ''}
+                </div></td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>
+    `;
   } catch (e) {
     showToast("Error", e.message, "error");
   }
@@ -308,37 +175,26 @@ async function loadRoles() {
   try {
     const roles = await apiFetch("/admin/roles");
     window.state.roles = roles;
-    document.getElementById("rolesTable").innerHTML = roles
-      .map(
-        (r) => `
-    <tr>
-      <td>${r.id}</td>
-      <td>${r.name} ${
-          r.isSystem ? '<span class="badge badge-system">SYS</span>' : ""
-        }</td>
-      <td>
-        ${
-          r.Permissions
-            ? r.Permissions.map(
-                (p) => `<span class="badge badge-role">${p.name}</span>`
-              ).join(" ")
-            : "None"
-        }
-      </td>
-      <td>
-        ${
-          r.isSystem
-            ? '<span class="btn btn-disabled">Protected</span>'
-            : `
-            ${hasPermission("roles.update") ? `<button class="btn btn-secondary btn-edit" data-type="roles" data-id="${r.id}">Edit</button>` : ''}
-            ${hasPermission("roles.delete") ? `<button class="btn btn-danger btn-delete" data-type="roles" data-id="${r.id}">Del</button>` : ''}
-        `
-        }
-      </td>
-    </tr>
-  `
-      )
-      .join("");
+    const container = document.getElementById("dynamicContent");
+    container.innerHTML = `
+      <div class="table-container">
+        <table class="table-ceramic">
+          <thead><tr><th>Role Name</th><th>Permissions</th><th>Actions</th></tr></thead>
+          <tbody>
+            ${roles.map(r => `
+              <tr>
+                <td><span style="font-weight:600;">${r.name}</span> ${r.isSystem ? '<span class="badge badge-system" style="margin-left:8px;">SYS</span>' : ''}</td>
+                <td><div style="display:flex; gap:4px; flex-wrap:wrap; max-width:400px;">${r.Permissions ? r.Permissions.map(p => `<span class="badge badge-role">${p.name}</span>`).join("") : '<span class="text-tertiary">No permissions</span>'}</div></td>
+                <td><div class="action-btn-group">
+                    ${!r.isSystem && hasPermission("roles.update") ? `<button class="btn-outline btn-sm" onclick="openEditModal('roles', ${r.id})">Edit</button>` : ''}
+                    ${!r.isSystem && hasPermission("roles.delete") ? `<button class="btn-outline btn-sm" style="color:var(--danger); border-color:var(--danger);" onclick="deleteResource('roles', ${r.id})">Delete</button>` : ''}
+                </div></td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>
+    `;
   } catch (e) {
     showToast("Error", e.message, "error");
   }
@@ -348,29 +204,26 @@ async function loadPermissions() {
   try {
     const perms = await apiFetch("/admin/permissions");
     window.state.permissions = perms;
-    document.getElementById("permsTable").innerHTML = perms
-      .map(
-        (p) => `
-    <tr>
-      <td>${p.id}</td>
-      <td>${p.name} ${
-          p.isSystem ? '<span class="badge badge-system">SYS</span>' : ""
-        }</td>
-      <td>${p.action}:${p.resource}</td>
-      <td>
-        ${
-          p.isSystem
-            ? '<span class="btn btn-disabled">Protected</span>'
-            : `
-            ${hasPermission("permissions.update") ? `<button class="btn btn-secondary btn-edit" data-type="permissions" data-id="${p.id}">Edit</button>` : ''}
-            ${hasPermission("permissions.delete") ? `<button class="btn btn-danger btn-delete" data-type="permissions" data-id="${p.id}">Del</button>` : ''}
-        `
-        }
-      </td>
-    </tr>
-  `
-      )
-      .join("");
+    const container = document.getElementById("dynamicContent");
+    container.innerHTML = `
+      <div class="table-container">
+        <table class="table-ceramic">
+          <thead><tr><th>Permission</th><th>Resource:Action</th><th>Actions</th></tr></thead>
+          <tbody>
+            ${perms.map(p => `
+              <tr>
+                <td><span style="font-weight:600;">${p.name}</span> ${p.isSystem ? '<span class="badge badge-system" style="margin-left:8px;">SYS</span>' : ''}</td>
+                <td><code style="background:var(--bg-main); padding:2px 6px; border-radius:4px;">${p.action}:${p.resource}</code></td>
+                <td><div class="action-btn-group">
+                    ${!p.isSystem && hasPermission("permissions.update") ? `<button class="btn-outline btn-sm" onclick="openEditModal('permissions', ${p.id})">Edit</button>` : ''}
+                    ${!p.isSystem && hasPermission("permissions.delete") ? `<button class="btn-outline btn-sm" style="color:var(--danger); border-color:var(--danger);" onclick="deleteResource('permissions', ${p.id})">Delete</button>` : ''}
+                </div></td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>
+    `;
   } catch (e) {
     showToast("Error", e.message, "error");
   }
@@ -378,480 +231,258 @@ async function loadPermissions() {
 
 async function loadPosts() {
   try {
-    const res = await fetch("/posts");
-    const posts = await res.json();
+    const posts = await apiFetch("/posts");
     window.state.posts = posts;
-    document.getElementById("postsList").innerHTML = posts
-      .map(
-        (p) => `
-        <div class="card">
-            <div style="display:flex; justify-content:space-between; align-items: flex-start;">
-                <div style="display:flex; gap:15px;">
-                    ${
-                      p.featuredImage
-                        ? `<img src="${p.featuredImage}" style="width:80px; height:80px; object-fit:cover; border-radius:8px;">`
-                        : ""
-                    }
-                    <div>
-                        <h3>${p.title}</h3>
-                        <div style="margin-top:5px;">
-                            <span class="badge badge-role" style="background:rgba(255,255,255,0.1); color:#fff; border:none;">${
-                              p.status
-                            }</span>
-                            <span style="color:#94a3b8; font-size:0.85rem; margin-left:10px;">/${
-                              p.slug
-                            }</span>
-                        </div>
-                    </div>
-                </div>
-                <div style="display:flex; gap:10px;">
-                    ${hasPermission("posts.update") 
-                      ? `<button class="btn btn-primary btn-edit" data-type="posts" data-id="${p.id}">Edit</button>` 
-                      : ''}
-                    ${hasPermission("posts.delete") 
-                      ? `<button class="btn btn-danger btn-delete" data-type="posts" data-id="${p.id}">Delete</button>` 
-                      : ''}
-                </div>
-            </div>
-        </div>
-    `
-      )
-      .join("");
+    const container = document.getElementById("dynamicContent");
+    if (posts.length === 0) {
+        container.innerHTML = '<p>No posts found.</p>';
+        return;
+    }
+    container.innerHTML = `
+      <div class="table-container">
+        <table class="table-ceramic">
+          <thead><tr><th style="width: 60px;">Image</th><th>Title</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
+          <tbody>
+            ${posts.map(p => `
+              <tr>
+                <td>${p.featuredImage ? `<img src="${p.featuredImage}" style="width:40px; height:40px; object-fit:cover; border-radius:6px;">` : '<div style="width:40px; height:40px; background:var(--border); border-radius:6px;"></div>'}</td>
+                <td><div style="font-weight:600;">${p.title}</div><div style="font-size:0.8rem; color:var(--text-tertiary);">/${p.slug}</div></td>
+                <td><span class="badge badge-role">${p.status}</span></td>
+                <td>${new Date(p.createdAt).toLocaleDateString()}</td>
+                <td><div class="action-btn-group">
+                    <a href="post.html?slug=${p.slug}" target="_blank" class="btn-outline btn-sm">View</a>
+                    ${hasPermission("posts.update") ? `<button class="btn-outline btn-sm" onclick="openEditModal('posts', ${p.id})">Edit</button>` : ''}
+                    ${hasPermission("posts.delete") ? `<button class="btn-outline btn-sm" style="color:var(--danger); border-color:var(--danger);" onclick="deleteResource('posts', ${p.id})">Delete</button>` : ''}
+                </div></td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>
+    `;
   } catch (e) {
     showToast("Error", "Failed to load posts", "error");
   }
 }
 
-window.deleteResource = async (type, id) => {
-  if (!confirm("Are you sure you want to delete this item?")) return;
-
-  try {
-    let url = `/admin/${type}/${id}`;
-    if (type === "posts") {
-      url = `/posts/${id}`;
+async function loadProfile() {
+    try {
+        const user = await fetchProfile();
+        if (!user) return;
+        
+        currentUser = user;
+        
+        document.getElementById("profileName").innerText = user.name;
+        document.getElementById("profileEmail").innerText = user.email;
+        
+        const rolesContainer = document.getElementById("profileRoles");
+        if (user.Roles && user.Roles.length > 0) {
+            rolesContainer.innerHTML = user.Roles.map(r => `<span class="badge badge-role">${r.name}</span>`).join("");
+        } else {
+            rolesContainer.innerHTML = '<span class="text-tertiary">No roles assigned</span>';
+        }
+        
+        const permsContainer = document.getElementById("profilePermissions");
+        if (user.Roles && user.Roles.length > 0) {
+            const allPerms = user.Roles.flatMap(r => r.Permissions || []);
+            
+            // Use name as the unique key since permissions don't have id in the response
+            const uniquePerms = [...new Map(allPerms.map(p => [p.name, p])).values()];
+            
+            if (uniquePerms.length > 0) {
+                permsContainer.innerHTML = uniquePerms.map(p => `<span class="badge badge-role" style="font-size:0.7rem;">${p.name}</span>`).join("");
+            } else {
+                permsContainer.innerHTML = '<span class="text-tertiary">No permissions</span>';
+            }
+        } else {
+            permsContainer.innerHTML = '<span class="text-tertiary">No permissions</span>';
+        }
+        
+        renderRecentActivity();
+    } catch (e) {
+        console.error("Failed to load profile", e);
     }
+}
 
-    const data = await apiFetch(url, { method: "DELETE" });
-    showToast("Deleted", data.message, "success");
+function renderRecentActivity() {
+    const container = document.getElementById("dynamicContent");
+    const activity = window.state.recentActivity || [];
+    if (!document.getElementById("nav-dashboard").classList.contains("active")) return;
+    
+    if (activity.length === 0) {
+        container.innerHTML = `<div style="background:var(--bg-main); padding:20px; border-radius:var(--radius-md); text-align:center; color:var(--text-secondary);">No recent activity found.</div>`;
+        return;
+    }
+    container.innerHTML = `
+        <div class="table-container">
+            <table class="table-ceramic">
+                <thead><tr><th>Action</th><th>User</th><th>Date</th></tr></thead>
+                <tbody>
+                    ${activity.map(post => `
+                        <tr>
+                            <td><span style="font-weight:600;">New Post Published</span><div style="font-size:0.85rem; color:var(--text-secondary);">${post.title}</div></td>
+                            <td>${post.User?.name || 'Unknown'}</td>
+                            <td>${new Date(post.createdAt).toLocaleDateString()}</td>
+                        </tr>
+                    `).join("")}
+                </tbody>
+            </table>
+        </div>
+    `;
+}
 
-    if (type === "users") loadUsers();
-    if (type === "roles") loadRoles();
-    if (type === "permissions") loadPermissions();
-    if (type === "posts") loadPosts();
-  } catch (e) {
-    showToast("Error", e.message, "error");
-  }
+// --- MODAL FUNCTIONS ---
+window.openCreateModal = async (type) => {
+    modalContext = { type, mode: 'create', id: null };
+    document.getElementById("modalTitle").innerText = `Create ${type.slice(0, -1).charAt(0).toUpperCase() + type.slice(1, -1)}`;
+    await renderModalForm(type, null);
+    document.getElementById("crudModal").classList.add("show");
 };
 
 window.openEditModal = async (type, id) => {
-  const modal = document.getElementById("editModal");
-  const title = document.getElementById("modalTitle");
-  const fields = document.getElementById("modalFields");
-
-  // Find data from state
-  let data = null;
-  if (type === 'users') data = window.state.users.find(u => u.id == id);
-  if (type === 'roles') data = window.state.roles.find(r => r.id == id);
-  if (type === 'permissions') data = window.state.permissions.find(p => p.id == id);
-  if (type === 'posts') data = window.state.posts.find(p => p.id == id);
-
-  if (!data) return;
-
-  document.getElementById("editId").value = data.id;
-  document.getElementById("editType").value = type;
-  title.innerText = `Edit ${type.slice(0, -1)}`;
-  fields.innerHTML = '<div style="text-align:center">Loading...</div>';
-  modal.classList.add("open");
-
-  try {
-    if (type === "users") {
-      const allRoles = await apiFetch("/admin/roles");
-      const userRoleIds = data.Roles ? data.Roles.map((r) => r.id) : [];
-
-      let roleChecks = allRoles
-        .map(
-          (r) => `
-        <label class="checkbox-item">
-            <input type="checkbox" name="editRoles" value="${r.id}" ${
-            userRoleIds.includes(r.id) ? "checked" : ""
-          }> ${r.name}
-        </label>
-      `
-        )
-        .join("");
-
-      fields.innerHTML = `
-            <div class="form-row"><input id="editName" value="${data.name}" placeholder="Name"></div>
-            <div class="form-row"><input id="editUsername" value="${data.username}" placeholder="Username"></div>
-            <div class="form-row"><input id="editEmail" value="${data.email}" placeholder="Email"></div>
-            <label class="field-label">Manage Roles</label>
-            <div class="checkbox-group">${roleChecks}</div>
-        `;
-    } else if (type === "roles") {
-      const allPerms = await apiFetch("/admin/permissions");
-      const rolePermIds = data.Permissions
-        ? data.Permissions.map((p) => p.id)
-        : [];
-
-      let permChecks = allPerms
-        .map(
-          (p) => `
-        <label class="checkbox-item">
-            <input type="checkbox" name="editPerms" value="${p.id}" ${
-            rolePermIds.includes(p.id) ? "checked" : ""
-          }> ${p.name}
-        </label>
-      `
-        )
-        .join("");
-
-      fields.innerHTML = `
-            <div class="form-row"><input id="editName" value="${data.name}" placeholder="Name"></div>
-            <label class="field-label">Manage Permissions</label>
-            <div class="checkbox-group">${permChecks}</div>
-        `;
-    } else if (type === "permissions") {
-      fields.innerHTML = `
-            <div class="form-row"><input id="editName" value="${data.name}" placeholder="Name"></div>
-            <div class="form-row"><input id="editAction" value="${data.action}" placeholder="Action"></div>
-            <div class="form-row"><input id="editResource" value="${data.resource}" placeholder="Resource"></div>
-        `;
-    } else if (type === "posts") {
-      fields.innerHTML = `
-            <div class="form-row"><input id="editTitle" value="${
-              data.title
-            }" placeholder="Title"></div>
-            <div class="form-row"><input id="editSlug" value="${
-              data.slug
-            }" placeholder="Slug"></div>
-            <div class="form-row">
-                <select id="editStatus">
-                    <option value="draft" ${
-                      data.status === "draft" ? "selected" : ""
-                    }>Draft</option>
-                    <option value="published" ${
-                      data.status === "published" ? "selected" : ""
-                    }>Published</option>
-                    <option value="archived" ${
-                      data.status === "archived" ? "selected" : ""
-                    }>Archived</option>
-                </select>
-                <div style="flex:1;">
-                   <label class="field-label">Update Image (Optional)</label>
-                   <input type="file" id="editImage" accept="image/*">
-                </div>
-            </div>
-            <div class="form-row"><textarea id="editContent" rows="5">${
-              data.content
-            }</textarea></div>
-        `;
-    }
-  } catch (e) {
-    showToast("Error", "Failed to load edit data", "error");
-    closeModal();
-  }
+    modalContext = { type, mode: 'edit', id };
+    document.getElementById("modalTitle").innerText = `Edit ${type.slice(0, -1).charAt(0).toUpperCase() + type.slice(1, -1)}`;
+    const item = window.state[type].find(i => i.id === id);
+    await renderModalForm(type, item);
+    document.getElementById("crudModal").classList.add("show");
 };
 
 window.closeModal = () => {
-  document.getElementById("editModal").classList.remove("open");
+    document.getElementById("crudModal").classList.remove("show");
+    modalContext = { type: null, mode: null, id: null };
 };
 
-document.getElementById("editForm").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const type = document.getElementById("editType").value;
-  const id = document.getElementById("editId").value;
-
-
-  if (type === "posts") {
-    const formData = new FormData();
-    formData.append("title", document.getElementById("editTitle").value);
-    formData.append("slug", document.getElementById("editSlug").value);
-    formData.append("content", document.getElementById("editContent").value);
-    formData.append("status", document.getElementById("editStatus").value);
-
-    const imageInput = document.getElementById("editImage");
-    if (imageInput.files.length > 0) {
-      formData.append("image", imageInput.files[0]);
+async function renderModalForm(type, data) {
+    const fieldsContainer = document.getElementById("modalFields");
+    let html = '';
+    
+    switch(type) {
+        case 'users':
+            const allRoles = await apiFetch("/admin/roles");
+            html = `
+                <div class="modal-field"><label>Name</label><input type="text" id="field_name" class="input-ceramic" value="${data?.name || ''}" required></div>
+                <div class="modal-field"><label>Username</label><input type="text" id="field_username" class="input-ceramic" value="${data?.username || ''}" required></div>
+                <div class="modal-field"><label>Email</label><input type="email" id="field_email" class="input-ceramic" value="${data?.email || ''}" required></div>
+                ${!data ? '<div class="modal-field"><label>Password</label><input type="password" id="field_password" class="input-ceramic" required></div>' : ''}
+                <div class="modal-field"><label>Roles</label><div class="checkbox-group">
+                    ${allRoles.map(r => `<div class="checkbox-item"><input type="checkbox" id="role_${r.id}" value="${r.id}" ${data?.Roles?.some(ur => ur.id === r.id) ? 'checked' : ''}><label for="role_${r.id}">${r.name}</label></div>`).join("")}
+                </div></div>
+            `;
+            break;
+        case 'roles':
+            const allPerms = await apiFetch("/admin/permissions");
+            html = `
+                <div class="modal-field"><label>Role Name</label><input type="text" id="field_name" class="input-ceramic" value="${data?.name || ''}" required></div>
+                <div class="modal-field"><label>Permissions</label><div class="checkbox-group">
+                    ${allPerms.map(p => `<div class="checkbox-item"><input type="checkbox" id="perm_${p.id}" value="${p.id}" ${data?.Permissions?.some(rp => rp.id === p.id) ? 'checked' : ''}><label for="perm_${p.id}">${p.name}</label></div>`).join("")}
+                </div></div>
+            `;
+            break;
+        case 'permissions':
+            html = `
+                <div class="modal-field"><label>Permission Name</label><input type="text" id="field_name" class="input-ceramic" value="${data?.name || ''}" required></div>
+                <div class="modal-field"><label>Resource</label><select id="field_resource" class="input-ceramic" required>
+                    <option value="">Select Resource</option>
+                    <option value="users" ${data?.resource === 'users' ? 'selected' : ''}>Users</option>
+                    <option value="roles" ${data?.resource === 'roles' ? 'selected' : ''}>Roles</option>
+                    <option value="permissions" ${data?.resource === 'permissions' ? 'selected' : ''}>Permissions</option>
+                    <option value="posts" ${data?.resource === 'posts' ? 'selected' : ''}>Posts</option>
+                    <option value="dashboard" ${data?.resource === 'dashboard' ? 'selected' : ''}>Dashboard</option>
+                </select></div>
+                <div class="modal-field"><label>Action</label><select id="field_action" class="input-ceramic" required>
+                    <option value="">Select Action</option>
+                    <option value="create" ${data?.action === 'create' ? 'selected' : ''}>Create</option>
+                    <option value="read" ${data?.action === 'read' ? 'selected' : ''}>Read</option>
+                    <option value="update" ${data?.action === 'update' ? 'selected' : ''}>Update</option>
+                    <option value="delete" ${data?.action === 'delete' ? 'selected' : ''}>Delete</option>
+                </select></div>
+            `;
+            break;
+        case 'posts':
+            html = `
+                <div class="modal-field"><label>Title</label><input type="text" id="field_title" class="input-ceramic" value="${data?.title || ''}" required></div>
+                <div class="modal-field"><label>Content</label><textarea id="field_content" class="input-ceramic" required>${data?.content || ''}</textarea></div>
+                <div class="modal-field"><label>Featured Image URL</label><input type="url" id="field_featuredImage" class="input-ceramic" value="${data?.featuredImage || ''}"></div>
+                <div class="modal-field"><label>Status</label><select id="field_status" class="input-ceramic" required>
+                    <option value="draft" ${data?.status === 'draft' ? 'selected' : ''}>Draft</option>
+                    <option value="published" ${data?.status === 'published' ? 'selected' : ''}>Published</option>
+                </select></div>
+            `;
+            break;
     }
-
-    try {
-      const res = await fetch(`/posts/${id}`, {
-        method: "PUT",
-        headers: {},
-        body: formData,
-      });
-      const result = await res.json();
-      if (res.ok) {
-        showToast("Success", "Post updated", "success");
-        closeModal();
-        loadPosts();
-      } else {
-        showToast("Error", result.error || "Update failed", "error");
-      }
-    } catch (err) {
-      showToast("Error", err.message, "error");
-    }
-    return;
-  }
-
-  const body = {};
-  if (type === "users") {
-    body.name = document.getElementById("editName").value;
-    body.username = document.getElementById("editUsername").value;
-    body.email = document.getElementById("editEmail").value;
-    body.roleIds = Array.from(
-      document.querySelectorAll('input[name="editRoles"]:checked')
-    ).map((cb) => cb.value);
-  } else if (type === "roles") {
-    body.name = document.getElementById("editName").value;
-    body.permissionIds = Array.from(
-      document.querySelectorAll('input[name="editPerms"]:checked')
-    ).map((cb) => cb.value);
-  } else if (type === "permissions") {
-    body.name = document.getElementById("editName").value;
-    body.action = document.getElementById("editAction").value;
-    body.resource = document.getElementById("editResource").value;
-  }
-
-  try {
-    const res = await apiFetch(`/admin/${type}/${id}`, {
-      method: "PUT",
-      body: JSON.stringify(body),
-    });
-
-    showToast("Success", res.message || "Item updated", "success");
-    closeModal();
-
-    if (type === "users") loadUsers();
-    if (type === "roles") loadRoles();
-    if (type === "permissions") loadPermissions();
-  } catch (err) {
-    showToast("Error", err.message, "error");
-  }
-});
-
-async function populateCreationForms() {
-  // Populate Roles for User Creation
-  if (hasPermission("roles.read")) {
-    try {
-      const roles = await apiFetch("/admin/roles");
-      const userRoleContainer = document.getElementById("newUserRoleChecks");
-      if (userRoleContainer) {
-        userRoleContainer.innerHTML = roles
-          .map(
-            (r) =>
-              `<label class="checkbox-item"><input type="checkbox" name="newRoles" value="${r.id}"> ${r.name}</label>`
-          )
-          .join("");
-      }
-    } catch (e) {
-      console.error("Failed to load roles for form:", e);
-      // Don't show toast here to avoid spamming if just one part fails
-    }
-  }
-
-  // Populate Permissions for Role Creation
-  if (hasPermission("permissions.read")) {
-    try {
-      const perms = await apiFetch("/admin/permissions");
-      const rolePermContainer = document.getElementById("newRolePermChecks");
-      if (rolePermContainer) {
-        rolePermContainer.innerHTML = perms
-          .map(
-            (p) =>
-              `<label class="checkbox-item"><input type="checkbox" name="newPerms" value="${p.id}"> ${p.name}</label>`
-          )
-          .join("");
-      }
-    } catch (e) {
-      console.error("Failed to load permissions for form:", e);
-    }
-  }
-}
-
-document
-  .getElementById("createUserForm")
-  .addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const body = {
-      name: document.getElementById("newUserName").value,
-      username: document.getElementById("newUserUsername").value,
-      email: document.getElementById("newUserEmail").value,
-      password: document.getElementById("newUserPassword").value,
-      roleIds: Array.from(
-        document.querySelectorAll('input[name="newRoles"]:checked')
-      ).map((cb) => cb.value),
+    
+    fieldsContainer.innerHTML = html;
+    
+    document.getElementById("modalForm").onsubmit = async (e) => {
+        e.preventDefault();
+        await handleModalSubmit();
     };
-
-    try {
-      const res = await apiFetch("/admin/users", {
-        method: "POST",
-        body: JSON.stringify(body),
-      });
-      showToast("Success", res.message, "success");
-      loadUsers();
-      e.target.reset();
-    } catch (err) {
-      showToast("Error", err.message, "error");
-    }
-  });
-
-document
-  .getElementById("createRoleForm")
-  .addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const name = document.getElementById("newRoleName").value;
-    const permissionIds = Array.from(
-      document.querySelectorAll('input[name="newPerms"]:checked')
-    ).map((cb) => cb.value);
-
-    try {
-      const res = await apiFetch("/admin/roles", {
-        method: "POST",
-        body: JSON.stringify({ name, permissionIds }),
-      });
-      showToast("Success", "Role created", "success");
-      loadRoles();
-      e.target.reset();
-    } catch (e) {
-      showToast("Error", e.message, "error");
-    }
-  });
-
-document
-  .getElementById("createPermForm")
-  .addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const name = document.getElementById("permName").value;
-    const action = document.getElementById("permAction").value;
-    const resource = document.getElementById("permResource").value;
-
-    try {
-      const res = await apiFetch("/admin/permissions", {
-        method: "POST",
-        body: JSON.stringify({ name, action, resource }),
-      });
-      showToast("Success", "Permission created", "success");
-      loadPermissions();
-      e.target.reset();
-    } catch (e) {
-      showToast("Error", e.message, "error");
-    }
-  });
-
-document
-  .getElementById("createPostForm")
-  .addEventListener("submit", async (e) => {
-    e.preventDefault();
-
-    const formData = new FormData();
-    formData.append("title", document.getElementById("postTitle").value);
-    formData.append("slug", document.getElementById("postSlug").value);
-    formData.append("content", document.getElementById("postContent").value);
-    formData.append("status", document.getElementById("postStatus").value);
-
-    const imageInput = document.getElementById("postImage");
-    if (imageInput.files.length > 0) {
-      formData.append("image", imageInput.files[0]);
-    }
-
-
-
-    try {
-      const res = await fetch("/posts", {
-        method: "POST",
-        headers: {},
-        body: formData,
-      });
-
-      const data = await res.json();
-
-      if (res.ok) {
-        showToast("Success", "Post published", "success");
-        loadPosts();
-        e.target.reset();
-        document
-          .getElementById("postSlug")
-          .removeAttribute("data-manually-edited");
-      } else {
-        showToast("Error", data.error || "Failed", "error");
-      }
-    } catch (err) {
-      showToast("Error", err.message, "error");
-    }
-  });
-
-// Load Profile Function
-async function loadProfile() {
-  try {
-    const user = await fetchProfile();
-    
-    // Display user info
-    document.getElementById("profileName").textContent = user.name;
-    document.getElementById("profileUsername").textContent = user.username;
-    document.getElementById("profileEmail").textContent = user.email;
-    document.getElementById("profileId").textContent = user.id;
-    
-    // Display roles
-    const rolesContainer = document.getElementById("profileRoles");
-    rolesContainer.innerHTML = user.Roles.map(role => 
-      `<span class="badge badge-role">${role.name}</span>`
-    ).join("");
-    
-    // Collect all permissions from all roles
-    const allPermissions = [];
-    const permissionSet = new Set();
-    user.Roles.forEach(role => {
-      if (role.Permissions) {
-        role.Permissions.forEach(perm => {
-          if (!permissionSet.has(perm.name)) {
-            permissionSet.add(perm.name);
-            allPermissions.push(perm);
-          }
-        });
-      }
-    });
-    
-    // Display permissions
-    const permsContainer = document.getElementById("profilePermissions");
-    if (allPermissions.length > 0) {
-      permsContainer.innerHTML = allPermissions.map(perm => 
-        `<span class="badge badge-role" style="background: rgba(59, 130, 246, 0.2); color: #60a5fa;">${perm.name}</span>`
-      ).join("");
-    } else {
-      permsContainer.innerHTML = '<p style="color: #94a3b8;">No permissions assigned</p>';
-    }
-    
-    // Load user's own posts
-    const postsRes = await fetch("/posts");
-    const allPosts = await postsRes.json();
-    const userPosts = allPosts.filter(post => post.authorId === user.id);
-    
-    const postsContainer = document.getElementById("profilePosts");
-    if (userPosts.length > 0) {
-      postsContainer.innerHTML = userPosts.map(post => `
-        <div class="card" style="margin-bottom: 16px;">
-          <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-            <div style="display: flex; gap: 15px;">
-              ${post.featuredImage ? `<img src="${post.featuredImage}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px;">` : ""}
-              <div>
-                <h4 style="margin: 0 0 8px 0;">${post.title}</h4>
-                <div>
-                  <span class="badge badge-role" style="background: rgba(255, 255, 255, 0.1); color: #fff; border: none;">${post.status}</span>
-                  <span style="color: #94a3b8; font-size: 0.85rem; margin-left: 10px;">/${post.slug}</span>
-                </div>
-                <p style="color: #94a3b8; font-size: 0.9rem; margin: 8px 0 0 0;">${new Date(post.createdAt).toLocaleDateString()}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      `).join("");
-    } else {
-      postsContainer.innerHTML = '<p style="color: #94a3b8;">You haven\'t created any posts yet.</p>';
-    }
-    
-  } catch (e) {
-    showToast("Error", "Failed to load profile", "error");
-    console.error(e);
-  }
 }
+
+async function handleModalSubmit() {
+    const { type, mode, id } = modalContext;
+    let payload = {};
+    
+    switch(type) {
+        case 'users':
+            payload.name = document.getElementById("field_name").value;
+            payload.username = document.getElementById("field_username").value;
+            payload.email = document.getElementById("field_email").value;
+            if (mode === 'create') payload.password = document.getElementById("field_password").value;
+            payload.roleIds = Array.from(document.querySelectorAll('.checkbox-group input[type="checkbox"]:checked')).map(cb => parseInt(cb.value));
+            break;
+        case 'roles':
+            payload.name = document.getElementById("field_name").value;
+            payload.permissionIds = Array.from(document.querySelectorAll('.checkbox-group input[type="checkbox"]:checked')).map(cb => parseInt(cb.value));
+            break;
+        case 'permissions':
+            payload.name = document.getElementById("field_name").value;
+            payload.resource = document.getElementById("field_resource").value;
+            payload.action = document.getElementById("field_action").value;
+            break;
+        case 'posts':
+            payload.title = document.getElementById("field_title").value;
+            payload.content = document.getElementById("field_content").value;
+            payload.featuredImage = document.getElementById("field_featuredImage").value || null;
+            payload.status = document.getElementById("field_status").value;
+            break;
+    }
+    
+    try {
+        let url = `/admin/${type}`;
+        if (type === 'posts') url = '/posts';
+        if (mode === 'edit') url += `/${id}`;
+        
+        await apiFetch(url, {
+            method: mode === 'create' ? 'POST' : 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        
+        showToast("Success", `${type.slice(0, -1)} ${mode === 'create' ? 'created' : 'updated'} successfully`, "success");
+        closeModal();
+        
+        if (type === 'users') loadUsers();
+        if (type === 'roles') loadRoles();
+        if (type === 'permissions') loadPermissions();
+        if (type === 'posts') loadPosts();
+    } catch (e) {
+        showToast("Error", e.message, "error");
+    }
+}
+
+window.deleteResource = async (type, id) => {
+    if(!confirm("Are you sure?")) return;
+    try {
+        let url = `/admin/${type}/${id}`;
+        if (type === "posts") url = `/posts/${id}`;
+        await apiFetch(url, { method: "DELETE" });
+        showToast("Success", "Item deleted", "success");
+        if (type === "users") loadUsers();
+        if (type === "roles") loadRoles();
+        if (type === "permissions") loadPermissions();
+        if (type === "posts") loadPosts();
+    } catch(e) {
+        showToast("Error", e.message, "error");
+    }
+};

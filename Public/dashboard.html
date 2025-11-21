@@ -1,327 +1,131 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Admin Dashboard - Authix</title>
-    <link rel="stylesheet" href="css/dashboard.css" />
-  </head>
-  <body>
-    <div id="toast-container" class="toast-container"></div>
-
-    <div class="dashboard-layout">
-      <nav class="sidebar">
-        <a href="index.html" class="sidebar-logo" style="text-decoration: none; color: inherit; display: block;">Authix<span>.</span></a>
-        <div class="menu-group">
-          <div class="menu-title">Menu</div>
-          <div class="menu-item active" id="nav-dashboard" data-view="dashboard">
-            Dashboard
-          </div>
-          <div class="menu-item" id="nav-posts" data-view="posts">Posts</div>
-          <div class="menu-item" id="nav-profile" data-view="profile">My Profile</div>
-        </div>
-        <div id="adminLinks" style="display: none" class="menu-group">
-          <div class="menu-title">Administration</div>
-          <div class="menu-item" id="nav-users" data-view="users">Users</div>
-          <div class="menu-item" id="nav-roles" data-view="roles">Roles</div>
-          <div class="menu-item" id="nav-permissions" data-view="permissions">
-            Permissions
-          </div>
-        </div>
-        <div style="margin-top: auto">
-          <a href="index.html" class="menu-item" style="text-decoration: none; color: inherit; display: block;">
-            🏠 Home
-          </a>
-          <div class="menu-item logout" id="nav-logout">Logout</div>
-        </div>
-      </nav>
-
-      <main class="main-content">
-        <!-- DASHBOARD VIEW -->
-        <section id="view-dashboard" class="view-section active">
-          <div class="view-header"><h2>Overview</h2></div>
-          <div class="stats-grid" id="statsGrid"></div>
-          <div class="card">
-            <h3>Recent Activity</h3>
-            <div class="table-responsive">
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th>Title</th>
-                    <th>Author</th>
-                    <th>Date</th>
-                  </tr>
-                </thead>
-                <tbody id="recentActivityTable"></tbody>
-              </table>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard | Authix</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Floating Sidebar -->
+        <aside class="glass-sidebar">
+            <div>
+                <a href="index.html" class="sidebar-logo">Authix<span>.</span></a>
+                <nav class="nav-menu">
+                    <a href="#" class="nav-item active" id="nav-dashboard">
+                        <span>📊</span> Dashboard
+                    </a>
+                    <a href="#" class="nav-item" id="nav-posts">
+                        <span>📝</span> Posts
+                    </a>
+                    <a href="#" class="nav-item" id="nav-users">
+                        <span>👥</span> Users
+                    </a>
+                    <a href="#" class="nav-item" id="nav-roles">
+                        <span>🛡️</span> Roles
+                    </a>
+                    <a href="#" class="nav-item" id="nav-permissions">
+                        <span>🔑</span> Permissions
+                    </a>
+                </nav>
             </div>
-          </div>
-        </section>
-
-        <!-- PROFILE VIEW -->
-        <section id="view-profile" class="view-section">
-          <div class="view-header"><h2>My Profile</h2></div>
-          
-          <div class="card">
-            <h3>User Information</h3>
-            <div id="profileInfo" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 16px;">
-              <div>
-                <label class="field-label">Name</label>
-                <p id="profileName" style="margin: 4px 0 0 0; font-weight: 500;"></p>
-              </div>
-              <div>
-                <label class="field-label">Username</label>
-                <p id="profileUsername" style="margin: 4px 0 0 0; font-weight: 500;"></p>
-              </div>
-              <div>
-                <label class="field-label">Email</label>
-                <p id="profileEmail" style="margin: 4px 0 0 0; font-weight: 500;"></p>
-              </div>
-              <div>
-                <label class="field-label">User ID</label>
-                <p id="profileId" style="margin: 4px 0 0 0; font-weight: 500;"></p>
-              </div>
+            <div class="sidebar-footer">
+                <a href="#" class="nav-item" id="logoutBtn">
+                    <span>🚪</span> Logout
+                </a>
             </div>
-          </div>
+        </aside>
 
-          <div class="card">
-            <h3>Roles & Permissions</h3>
-            <div style="margin-top: 16px;">
-              <label class="field-label">Assigned Roles</label>
-              <div id="profileRoles" style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 8px;"></div>
-            </div>
-            <div style="margin-top: 24px;">
-              <label class="field-label">Permissions</label>
-              <div id="profilePermissions" style="margin-top: 8px; display: flex; flex-wrap: wrap; gap: 8px;"></div>
-            </div>
-          </div>
+        <!-- Main Content -->
+        <main class="main-content">
+            <header style="margin-bottom: 40px;">
+                <h1>Dashboard</h1>
+                <p>Overview of your application's performance and security.</p>
+            </header>
 
-          <div class="card">
-            <h3>My Posts</h3>
-            <div id="profilePosts" style="margin-top: 16px;"></div>
-          </div>
-        </section>
-
-        <!-- USERS VIEW -->
-        <section id="view-users" class="view-section">
-          <div class="view-header">
-            <h2>User Management</h2>
-          </div>
-
-          <div class="card" id="createUserCard">
-            <h3>Create New User</h3>
-            <form id="createUserForm">
-              <div class="form-row">
-                <input
-                  type="text"
-                  id="newUserName"
-                  placeholder="Full Name"
-                  required
-                />
-                <input
-                  type="text"
-                  id="newUserUsername"
-                  placeholder="Username"
-                  required
-                />
-              </div>
-              <div class="form-row">
-                <input
-                  type="email"
-                  id="newUserEmail"
-                  placeholder="Email"
-                  required
-                />
-                <input
-                  type="password"
-                  id="newUserPassword"
-                  placeholder="Password"
-                  required
-                />
-              </div>
-              <div style="margin-bottom: 16px">
-                <label class="field-label">Assign Roles</label>
-                <div id="newUserRoleChecks" class="checkbox-group"></div>
-              </div>
-              <button type="submit" class="btn btn-primary">Create User</button>
-            </form>
-          </div>
-
-          <div class="card">
-            <div class="table-responsive">
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th>User</th>
-                    <th>Email</th>
-                    <th>Roles</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody id="usersTable"></tbody>
-              </table>
-            </div>
-          </div>
-        </section>
-
-        <!-- ROLES VIEW -->
-        <section id="view-roles" class="view-section">
-          <div class="view-header"><h2>Roles</h2></div>
-          <div class="card" id="createRoleCard">
-            <h3>Create Role</h3>
-            <form id="createRoleForm">
-              <div class="form-row">
-                <input
-                  type="text"
-                  id="newRoleName"
-                  placeholder="Role Name"
-                  required
-                />
-              </div>
-              <div style="margin-bottom: 16px">
-                <label class="field-label">Assign Permissions</label>
-                <div id="newRolePermChecks" class="checkbox-group"></div>
-              </div>
-              <button type="submit" class="btn btn-primary">Create Role</button>
-            </form>
-          </div>
-          <div class="card">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Name</th>
-                  <th>Permissions</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody id="rolesTable"></tbody>
-            </table>
-          </div>
-        </section>
-
-        <!-- PERMISSIONS VIEW -->
-        <section id="view-permissions" class="view-section">
-          <div class="view-header"><h2>Permissions</h2></div>
-          <div class="card" id="createPermissionCard">
-            <h3>Add Permission</h3>
-            <form id="createPermForm" class="form-row">
-              <input type="text" id="permName" placeholder="Name" required />
-              <select id="permAction">
-                <option value="create">Create</option>
-                <option value="read">Read</option>
-                <option value="update">Update</option>
-                <option value="delete">Delete</option>
-              </select>
-              <input
-                type="text"
-                id="permResource"
-                placeholder="Resource"
-                required
-              />
-              <button type="submit" class="btn btn-primary">Add</button>
-            </form>
-          </div>
-          <div class="card">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Name</th>
-                  <th>Details</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody id="permsTable"></tbody>
-            </table>
-          </div>
-        </section>
-
-        <!-- POSTS VIEW -->
-        <section id="view-posts" class="view-section">
-          <div class="view-header"><h2>Content</h2></div>
-
-          <div class="card" id="createPostCard">
-            <h3>Create Post</h3>
-            <form id="createPostForm" enctype="multipart/form-data">
-              <div class="form-row">
-                <input
-                  type="text"
-                  id="postTitle"
-                  placeholder="Title"
-                  required
-                />
-                <!-- Slug is auto-generated but can be edited -->
-                <input
-                  type="text"
-                  id="postSlug"
-                  placeholder="Slug (auto-generated)"
-                />
-              </div>
-
-              <div class="form-row">
-                <div style="flex: 1">
-                  <label class="field-label">Status</label>
-                  <select id="postStatus">
-                    <option value="draft">Draft</option>
-                    <option value="published">Published</option>
-                    <option value="archived">Archived</option>
-                  </select>
+            <!-- Bento Grid Layout -->
+            <div class="bento-grid" id="dashboardGrid">
+                
+                <!-- Stats Section (Top Row) -->
+                <div class="bento-card span-3">
+                    <h3>Total Users</h3>
+                    <div class="stat-ring" id="stat-users-ring" style="--percent: 0%;" data-value="0"></div>
                 </div>
-                <div style="flex: 1">
-                  <label class="field-label">Featured Image</label>
-                  <input type="file" id="postImage" accept="image/*" />
+                <div class="bento-card span-3">
+                    <h3>Published Posts</h3>
+                    <div class="stat-ring" id="stat-posts-ring" style="--percent: 0%;" data-value="0"></div>
                 </div>
-              </div>
+                <div class="bento-card span-3">
+                    <h3>Active Roles</h3>
+                    <div class="stat-ring" id="stat-roles-ring" style="--percent: 0%;" data-value="0"></div>
+                </div>
+                <div class="bento-card span-3">
+                    <h3>Permissions</h3>
+                    <div class="stat-ring" id="stat-perms-ring" style="--percent: 0%;" data-value="0"></div>
+                </div>
 
-              <textarea
-                id="postContent"
-                placeholder="Write your story..."
-                rows="6"
-                required
-              ></textarea>
-              <button
-                type="submit"
-                class="btn btn-primary"
-                style="margin-top: 10px"
-              >
-                Create Post
-              </button>
-            </form>
-          </div>
+                <!-- Profile Section (Middle Left) -->
+                <div class="bento-card span-4 row-span-2">
+                    <h3>My Profile</h3>
+                    <div id="profileContent" style="display: flex; flex-direction: column; gap: 16px;">
+                        <div>
+                            <label style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px; display: block; font-weight: 500;">Full Name</label>
+                            <div id="profileName" style="font-weight: 600; font-size: 1.1rem;"></div>
+                        </div>
+                        <div>
+                            <label style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px; display: block; font-weight: 500;">Email</label>
+                            <div id="profileEmail" style="color: var(--text-secondary);"></div>
+                        </div>
+                        <div>
+                            <label style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px; display: block; font-weight: 500;">Roles</label>
+                            <div id="profileRoles" style="display: flex; gap: 6px; flex-wrap: wrap;"></div>
+                        </div>
+                        <div>
+                            <label style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 8px; display: block; font-weight: 500;">Permissions</label>
+                            <div id="profilePermissions" style="display: flex; gap: 6px; flex-wrap: wrap; max-height: 150px; overflow-y: auto;"></div>
+                        </div>
+                    </div>
+                </div>
 
-          <div id="postsList"></div>
-        </section>
-      </main>
+                <!-- Management Area (Dynamic Content) -->
+                <div class="bento-card span-8 row-span-2" id="managementArea">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                        <h3 id="managementTitle">Activity Feed</h3>
+                        <button class="btn-ceramic" id="createBtn" style="display: none;">+ Create New</button>
+                    </div>
+                    
+                    <!-- Dynamic Content Container (Replaces Tables) -->
+                    <div id="dynamicContent">
+                        <!-- Content injected by JS -->
+                        <p style="color: var(--text-secondary);">Select a category from the sidebar to manage resources.</p>
+                    </div>
+                </div>
 
-      <!-- GENERAL EDIT MODAL -->
-      <div class="modal-overlay" id="editModal">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h3 id="modalTitle">Edit Item</h3>
-            <button id="modalCloseBtn" class="btn btn-secondary">X</button>
-          </div>
-          <form id="editForm" enctype="multipart/form-data">
-            <input type="hidden" id="editId" />
-            <input type="hidden" id="editType" />
-            <div id="modalFields"></div>
-            <div class="modal-footer">
-              <button
-                id="modalCancelBtn"
-                class="btn btn-secondary"
-              >
-                Cancel
-              </button>
-              <button type="submit" class="btn btn-primary">
-                Save Changes
-              </button>
             </div>
-          </form>
-        </div>
-      </div>
+        </main>
     </div>
-    <script src="js/utils.js"></script>
+
+    <!-- Universal Modal -->
+    <div id="crudModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Modal Title</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="modalForm">
+                    <div id="modalFields"></div>
+                    <div class="modal-actions">
+                        <button type="button" class="btn-outline" onclick="closeModal()">Cancel</button>
+                        <button type="submit" class="btn-ceramic">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <script src="js/auth.js"></script>
     <script src="js/admin-dashboard.js"></script>
-  </body>
+</body>
 </html>

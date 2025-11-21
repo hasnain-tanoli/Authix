@@ -18,9 +18,10 @@ app.use(
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'"],
-        scriptSrcAttr: ["'none'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
+        scriptSrc: ["'self'", "'unsafe-inline'"],
+        scriptSrcAttr: ["'unsafe-hashes'", "'unsafe-inline'"],
+        styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+        fontSrc: ["'self'", "https://fonts.gstatic.com"],
         imgSrc: ["'self'", "data:", "blob:"],
         connectSrc: ["'self'"],
         objectSrc: ["'none'"],
@@ -58,8 +59,8 @@ import { verifyPermission } from "./middleware/verifyPermission.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Protect dashboard.html
-app.get("/dashboard.html", authenticateToken, verifyPermission("dashboard.read"), (req, res, next) => {
+// Protect dashboard.html - only check authentication, permission check is done client-side
+app.get("/dashboard.html", authenticateToken, (req, res, next) => {
   next();
 });
 

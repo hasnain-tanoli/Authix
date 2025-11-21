@@ -1,189 +1,91 @@
-// Check if user is authenticated and update navigation
+// Check if user is authenticated and update sidebar visibility
 (async () => {
   try {
     const user = await fetchProfile();
     if (user) {
-      // User is logged in, update nav
-      const navLinks = document.querySelector(".nav-links");
-      const ctaButtons = document.getElementById("ctaButtons");
-      // Helper to check permissions
-      const hasPermission = (permissionName) => {
-        if (!user || !user.Roles) return false;
-        return user.Roles.some(role => 
-          role.Permissions && role.Permissions.some(perm => perm.name === permissionName)
-        );
-      };
-
-      const canViewDashboard = hasPermission("dashboard.read");
-      const canViewPosts = hasPermission("posts.read");
-
-      // Build Navigation Links
-      let navHtml = "";
-      if (canViewPosts) {
-        navHtml += `<a href="posts.html" class="nav-btn btn-outline">Posts</a>`;
-      }
-      if (canViewDashboard) {
-        navHtml += `<a href="dashboard.html" class="nav-btn btn-outline">Dashboard</a>`;
-      }
-      navHtml += `<a href="javascript:void(0);" class="nav-btn btn-fill logout-btn">Logout</a>`;
+      // Show Dashboard link if authorized
+      const hasDashboardAccess = user.Roles.some(role => 
+        role.Permissions && role.Permissions.some(perm => perm.name === "dashboard.read")
+      );
       
-      navLinks.innerHTML = navHtml;
+      if (hasDashboardAccess) {
+        document.getElementById("dashboardLink").style.display = "flex";
+      }
 
-      // Build CTA Buttons
-      let ctaHtml = "";
-      if (canViewPosts) {
-        ctaHtml += `<a href="posts.html" class="nav-btn btn-fill">View Posts</a>`;
-      }
-      if (canViewDashboard) {
-        ctaHtml += `<a href="dashboard.html" class="nav-btn btn-outline">Go to Dashboard</a>`;
-      }
-      if (!canViewPosts && !canViewDashboard) {
-         // Fallback if no permissions
-         ctaHtml += `<a href="javascript:void(0);" class="nav-btn btn-outline logout-btn">Logout</a>`;
-      } else if (!canViewDashboard) {
-         // If only posts or nothing, add logout as secondary
-         ctaHtml += `<a href="javascript:void(0);" class="nav-btn btn-outline logout-btn">Logout</a>`;
-      }
-      
-      ctaButtons.innerHTML = ctaHtml;
+      // Toggle Auth Links
+      document.getElementById("loginLink").style.display = "none";
+      document.getElementById("signupLink").style.display = "none";
+      document.getElementById("logoutBtn").style.display = "flex";
     }
   } catch (e) {
-    // User not logged in, keep default nav and buttons
+    // Not logged in, keep defaults
   }
 
   // Load recent posts
   loadRecentPosts();
 })();
 
-// Global event listener for logout buttons
-document.addEventListener("click", async (e) => {
-  if (e.target.classList.contains("logout-btn")) {
-    e.preventDefault();
-    e.stopPropagation();
-    await logoutUser();
-  }
+// Logout Handler
+document.getElementById("logoutBtn")?.addEventListener("click", async (e) => {
+  e.preventDefault();
+  await logoutUser();
+  window.location.href = "index.html";
 });
 
 async function loadRecentPosts() {
   try {
     const res = await fetch("/posts");
-    
-    if (!res.ok) return; // User likely not authorized or error
+    if (!res.ok) return; 
 
     const posts = await res.json();
-    
-    if (!Array.isArray(posts)) return; // Safety check
+    if (!Array.isArray(posts)) return;
 
     // Filter published posts and get latest 3
     const recentPosts = posts
       .filter((p) => p.status === "published")
       .slice(0, 3);
 
-    if (recentPosts.length === 0) return;
+    const container = document.getElementById("recentPosts");
+    if (!container) return;
 
-    // Find the CTA buttons section and add posts before it
-    const ctaButtons = document.querySelector(".cta-buttons");
-    const postsSection = document.createElement("div");
-    postsSection.className = "recent-posts";
-    postsSection.innerHTML = `
-      <h2 style="color: #fff; font-size: 2rem; margin-bottom: 30px; text-align: center;">Recent Posts</h2>
-      <div class="posts-grid">
-        ${recentPosts
-          .map(
-            (post) => `
-          <a href="post.html?slug=${post.slug}" style="text-decoration: none; color: inherit;">
-            <div class="post-card">
-              ${
-                post.featuredImage
-                  ? `<img src="${post.featuredImage}" alt="${post.title}" class="post-image" onerror="this.style.display='none'">`
-                  : ""
-              }
-              <h3 class="post-title">${post.title}</h3>
-              <div class="post-meta">
-                <span>By ${post.User?.name || "Unknown"}</span>
+    if (recentPosts.length === 0) {
+      container.innerHTML = '<div class="bento-card span-12"><p>No recent stories found.</p></div>';
+      return;
+    }
+
+    container.innerHTML = recentPosts
+      .map(
+        (post) => `
+      <a href="post.html?slug=${post.slug}" class="post-card-minimal">
+        <div class="post-image-wrapper">
+            ${
+              post.featuredImage
+                ? `<img src="${post.featuredImage}" alt="${post.title}" class="post-image-minimal" onerror="this.style.display='none'">`
+                : `<div style="width:100%; height:100%; background:var(--border); display:flex; align-items:center; justify-content:center; color:var(--text-tertiary);">No Image</div>`
+            }
+        </div>
+        <div class="post-content-minimal">
+            <span class="post-tag">${post.status}</span>
+            <h3 style="margin-bottom: 12px; font-size: 1.5rem; line-height: 1.2;">${post.title}</h3>
+            <p style="font-size: 0.95rem; margin-bottom: 24px; flex: 1; color: var(--text-secondary);">${truncateText(post.content, 120)}</p>
+            <div style="display: flex; align-items: center; gap: 12px; font-size: 0.85rem; color: var(--text-tertiary);">
+                <span>${post.User?.name || "Unknown"}</span>
                 <span>•</span>
                 <span>${new Date(post.createdAt).toLocaleDateString()}</span>
-              </div>
-              <p class="post-excerpt">${truncateText(post.content, 100)}</p>
             </div>
-          </a>
-        `
-          )
-          .join("")}
-      </div>
-      <div style="text-align: center; margin-top: 30px;">
-        <a href="posts.html" class="nav-btn btn-outline">View All Posts</a>
-      </div>
-    `;
-
-    ctaButtons.parentNode.insertBefore(postsSection, ctaButtons.nextSibling);
-
-    // Add styles for posts
-    const style = document.createElement("style");
-    style.textContent = `
-      .recent-posts {
-        margin-top: 60px;
-        width: 100%;
-      }
-
-      .posts-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-        gap: 30px;
-        margin-top: 30px;
-      }
-
-      .post-card {
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 16px;
-        padding: 25px;
-        transition: all 0.3s ease;
-        backdrop-filter: blur(10px);
-      }
-
-      .post-card:hover {
-        transform: translateY(-5px);
-        border-color: rgba(102, 126, 234, 0.5);
-        box-shadow: 0 10px 40px rgba(102, 126, 234, 0.2);
-      }
-
-      .post-image {
-        width: 100%;
-        height: 180px;
-        object-fit: cover;
-        border-radius: 12px;
-        margin-bottom: 15px;
-      }
-
-      .post-title {
-        font-size: 1.3rem;
-        font-weight: 600;
-        margin-bottom: 10px;
-        color: #fff;
-      }
-
-      .post-meta {
-        display: flex;
-        gap: 10px;
-        margin-bottom: 12px;
-        font-size: 0.8rem;
-        color: #94a3b8;
-      }
-
-      .post-excerpt {
-        color: #cbd5e1;
-        line-height: 1.6;
-        font-size: 0.95rem;
-      }
-    `;
-    document.head.appendChild(style);
+        </div>
+      </a>
+    `
+      )
+      .join("");
+      
   } catch (error) {
     console.error("Error loading recent posts:", error);
   }
 }
 
 function truncateText(text, maxLength) {
+  if (!text) return "";
   if (text.length <= maxLength) return text;
   return text.substring(0, maxLength) + "...";
 }

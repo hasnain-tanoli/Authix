@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unauthorized | Authix</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .error-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+            background: radial-gradient(circle at top right, #f3f4f6, #ffffff);
+        }
+        .error-card {
+            background: var(--surface);
+            padding: 60px 48px;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            width: 100%;
+            max-width: 500px;
+            border: 1px solid var(--border);
+            text-align: center;
+        }
+        .error-icon {
+            font-size: 5rem;
+            margin-bottom: 24px;
+            color: var(--danger);
+        }
+        .error-title {
+            font-size: 2rem;
+            font-weight: 800;
+            margin-bottom: 16px;
+            color: var(--text-main);
+        }
+        .error-message {
+            color: var(--text-secondary);
+            margin-bottom: 32px;
+            line-height: 1.6;
+        }
+        .error-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="error-container">
+        <div class="error-card">
+            <div class="error-icon">🚫</div>
+            <h1 class="error-title">Access Denied</h1>
+            <p class="error-message">
+                You don't have permission to access this resource. 
+                Please contact your administrator if you believe this is an error.
+            </p>
+            <div class="error-actions">
+                <a href="index.html" class="btn-ceramic">Go Home</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
