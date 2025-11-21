@@ -141,20 +141,49 @@ async function signupUser(name, username, email, password) {
 async function logoutUser() {
   try {
     await fetch(`${API_URL}/logout`, { method: "POST" });
+    clearProfileCache(); // Clear cached profile data
     window.location.href = "/login.html";
   } catch (err) {
     console.error(err);
   }
 }
 
-async function fetchProfile() {
+// Simple cache for profile data
+let profileCache = null;
+let profileCacheTime = 0;
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+async function fetchProfile(forceRefresh = false) {
   try {
+    // Return cached profile if still valid and not forcing refresh
+    const now = Date.now();
+    if (!forceRefresh && profileCache && (now - profileCacheTime) < CACHE_DURATION) {
+      return profileCache;
+    }
+    
     const res = await fetch(`${API_URL}/profile`, {
       method: "GET",
+      cache: "no-store", // Prevent browser HTTP caching
     });
-    if (res.ok) return await res.json();
+    
+    if (res.ok) {
+      const data = await res.json();
+      profileCache = data;
+      profileCacheTime = now;
+      return data;
+    }
+    
+    // If not ok, clear cache
+    clearProfileCache();
     return null;
   } catch (err) {
+    clearProfileCache();
     return null;
   }
+}
+
+// Clear profile cache on logout
+function clearProfileCache() {
+  profileCache = null;
+  profileCacheTime = 0;
 }

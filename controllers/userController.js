@@ -106,11 +106,11 @@ export const getUserProfile = asyncHandler(async (req, res) => {
     attributes: ["id", "username", "name", "email"],
     include: {
       model: Role,
-      attributes: ["name", "description"],
+      attributes: ["id", "name"],
       through: { attributes: [] },
       include: {
         model: Permission,
-        attributes: ["name", "action", "resource"],
+        attributes: ["id", "name", "action", "resource"],
         through: { attributes: [] },
       },
     },
@@ -118,6 +118,8 @@ export const getUserProfile = asyncHandler(async (req, res) => {
 
   if (!user) return res.status(404).json({ error: "User not found" });
 
+  // Set cache headers for 5 minutes
+  res.set('Cache-Control', 'private, max-age=300');
   res.json(user);
 });
 

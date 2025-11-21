@@ -28,8 +28,7 @@
 // Logout Handler
 document.getElementById("logoutBtn")?.addEventListener("click", async (e) => {
   e.preventDefault();
-  await logoutUser();
-  window.location.href = "index.html";
+  await logoutUser(); // This already redirects to login.html and clears cache
 });
 
 async function loadRecentPosts() {

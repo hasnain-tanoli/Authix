@@ -45,9 +45,14 @@ export const createUser = asyncHandler(async (req, res) => {
 export const getAllUsers = asyncHandler(async (req, res) => {
   const users = await User.findAll({
     attributes: ["id", "name", "email", "username", "isSystem"],
-    include: { model: Role, attributes: ["id", "name"] },
+    include: { 
+      model: Role, 
+      attributes: ["id", "name"],
+      through: { attributes: [] }
+    },
     order: [["id", "ASC"]],
   });
+  
   res.json(users);
 });
 
@@ -154,12 +159,15 @@ export const createRole = asyncHandler(async (req, res) => {
 
 export const getAllRoles = asyncHandler(async (req, res) => {
   const roles = await Role.findAll({
+    attributes: ["id", "name", "description", "isSystem"],
     include: {
       model: Permission,
       attributes: ["id", "name", "action", "resource"],
+      through: { attributes: [] },
     },
     order: [["id", "ASC"]],
   });
+  
   res.json(roles);
 });
 
@@ -249,11 +257,13 @@ export const createPermission = asyncHandler(async (req, res) => {
 
 export const getAllPermissions = asyncHandler(async (req, res) => {
   const perms = await Permission.findAll({
+    attributes: ["id", "name", "action", "resource", "isSystem"],
     order: [
       ["resource", "ASC"],
       ["id", "ASC"],
     ],
   });
+  
   res.json(perms);
 });
 
