@@ -59,28 +59,103 @@ window.addEventListener("DOMContentLoaded", async () => {
     currentUser = await fetchProfile();
     if (currentUser) {
       const roles = currentUser.Roles.map((r) => r.name);
-      if (roles.includes("admin")) {
-        document.getElementById("adminLinks").style.display = "block";
-        loadDashboardStats();
-        populateCreationForms();
-      } else if (roles.includes("editor")) {
-        // Editor can see posts but not admin functions
-        switchView("posts");
+      
+      // Permission-based Dashboard Initialization
+      const adminLinksContainer = document.getElementById("adminLinks");
+      let hasAdminAccess = false;
+
+      // Show users menu if has users.read permission
+      if (hasPermission("users.read")) {
+        document.getElementById("nav-users").style.display = "block";
+        hasAdminAccess = true;
       } else {
-        // Regular users go to posts view
-        switchView("posts");
+        document.getElementById("nav-users").style.display = "none";
       }
       
-      // Hide create post form if user doesn't have permission
-      if (!hasPermission("posts.create")) {
-        const createPostCard = document.getElementById("createPostCard");
-        if (createPostCard) {
-          createPostCard.style.display = "none";
+      // Show roles menu if has roles.read permission
+      if (hasPermission("roles.read")) {
+        document.getElementById("nav-roles").style.display = "block";
+        hasAdminAccess = true;
+      } else {
+        document.getElementById("nav-roles").style.display = "none";
+      }
+      
+      // Show permissions menu if has permissions.read permission
+      if (hasPermission("permissions.read")) {
+        document.getElementById("nav-permissions").style.display = "block";
+        hasAdminAccess = true;
+      } else {
+        document.getElementById("nav-permissions").style.display = "none";
+      }
+
+      // Show Administration header if any admin access
+      if (hasAdminAccess) {
+        adminLinksContainer.style.display = "block";
+        populateCreationForms();
+      }
+
+      // Load Dashboard Stats if has dashboard.read permission
+      if (hasPermission("dashboard.read")) {
+        loadDashboardStats();
+      } else {
+        // Hide dashboard view/menu if no permission
+        const dashboardMenu = document.getElementById("nav-dashboard");
+        if (dashboardMenu) dashboardMenu.style.display = "none";
+        
+        // If currently on dashboard view, switch to something else
+        const currentView = document.querySelector(".view-section.active");
+        if (currentView && currentView.id === "view-dashboard") {
+           // Will be handled by default view logic below
         }
       }
       
-      // Load posts for everyone who can access dashboard
-      loadPosts();
+      // Determine default view based on available permissions
+      if (hasPermission("dashboard.read")) {
+        // Stay on dashboard or switch to it
+        // switchView("dashboard"); // Already default in HTML
+      } else if (hasPermission("posts.read")) {
+        switchView("posts");
+      } else if (hasPermission("users.read")) {
+        switchView("users");
+      } else if (hasPermission("roles.read")) {
+        switchView("roles");
+      } else if (hasPermission("permissions.read")) {
+        switchView("permissions");
+      } else {
+        switchView("profile"); // Default to profile if no other permissions
+      }
+      
+      // Hide posts menu if user doesn't have posts.read permission
+      if (!hasPermission("posts.read")) {
+        const postsMenu = document.getElementById("nav-posts");
+        if (postsMenu) postsMenu.style.display = "none";
+      }
+      
+      // Hide create forms based on permissions
+      if (!hasPermission("posts.create")) {
+        const createPostCard = document.getElementById("createPostCard");
+        if (createPostCard) createPostCard.style.display = "none";
+      }
+      
+      if (!hasPermission("users.create")) {
+        const createUserCard = document.getElementById("createUserCard");
+        if (createUserCard) createUserCard.style.display = "none";
+      }
+      
+      if (!hasPermission("roles.create")) {
+        const createRoleCard = document.getElementById("createRoleCard");
+        if (createRoleCard) createRoleCard.style.display = "none";
+      }
+      
+      if (!hasPermission("permissions.create")) {
+        const createPermissionCard = document.getElementById("createPermissionCard");
+        if (createPermissionCard) createPermissionCard.style.display = "none";
+      }
+      
+      // Only load posts if user has posts.read permission
+      if (hasPermission("posts.read")) {
+        loadPosts();
+      }
     }
   } catch (e) {
     showToast("Error", "Failed to load profile", "error");
@@ -142,24 +217,41 @@ async function loadDashboardStats() {
     const data = await apiFetch("/admin/stats");
 
     const grid = document.getElementById("statsGrid");
-    grid.innerHTML = `
-      <div class="stat-card">
-          <div class="stat-number">${data.counts.users}</div>
-          <div class="stat-label">Total Users</div>
-      </div>
-      <div class="stat-card">
-          <div class="stat-number">${data.counts.posts}</div>
-          <div class="stat-label">Published Posts</div>
-      </div>
-      <div class="stat-card">
-          <div class="stat-number">${data.counts.roles}</div>
-          <div class="stat-label">Active Roles</div>
-      </div>
-      <div class="stat-card">
-          <div class="stat-number">${data.counts.permissions}</div>
-          <div class="stat-label">Permissions</div>
-      </div>
-    `;
+    let statsHtml = "";
+
+    if (hasPermission("users.read")) {
+      statsHtml += `
+        <div class="stat-card">
+            <div class="stat-number">${data.counts.users}</div>
+            <div class="stat-label">Total Users</div>
+        </div>`;
+    }
+
+    if (hasPermission("posts.read")) {
+      statsHtml += `
+        <div class="stat-card">
+            <div class="stat-number">${data.counts.posts}</div>
+            <div class="stat-label">Published Posts</div>
+        </div>`;
+    }
+
+    if (hasPermission("roles.read")) {
+      statsHtml += `
+        <div class="stat-card">
+            <div class="stat-number">${data.counts.roles}</div>
+            <div class="stat-label">Active Roles</div>
+        </div>`;
+    }
+
+    if (hasPermission("permissions.read")) {
+      statsHtml += `
+        <div class="stat-card">
+            <div class="stat-number">${data.counts.permissions}</div>
+            <div class="stat-label">Permissions</div>
+        </div>`;
+    }
+
+    grid.innerHTML = statsHtml;
 
     const tbody = document.getElementById("recentActivityTable");
     tbody.innerHTML = data.recentActivity
@@ -198,8 +290,8 @@ async function loadUsers() {
           u.isSystem
             ? '<span class="btn btn-disabled">Protected</span>'
             : `
-            <button class="btn btn-secondary btn-edit" data-type="users" data-id="${u.id}">Edit</button>
-            <button class="btn btn-danger btn-delete" data-type="users" data-id="${u.id}">Del</button>
+            ${hasPermission("users.update") ? `<button class="btn btn-secondary btn-edit" data-type="users" data-id="${u.id}">Edit</button>` : ''}
+            ${hasPermission("users.delete") ? `<button class="btn btn-danger btn-delete" data-type="users" data-id="${u.id}">Del</button>` : ''}
         `
         }
       </td>
@@ -238,8 +330,8 @@ async function loadRoles() {
           r.isSystem
             ? '<span class="btn btn-disabled">Protected</span>'
             : `
-            <button class="btn btn-secondary btn-edit" data-type="roles" data-id="${r.id}">Edit</button>
-            <button class="btn btn-danger btn-delete" data-type="roles" data-id="${r.id}">Del</button>
+            ${hasPermission("roles.update") ? `<button class="btn btn-secondary btn-edit" data-type="roles" data-id="${r.id}">Edit</button>` : ''}
+            ${hasPermission("roles.delete") ? `<button class="btn btn-danger btn-delete" data-type="roles" data-id="${r.id}">Del</button>` : ''}
         `
         }
       </td>
@@ -270,8 +362,8 @@ async function loadPermissions() {
           p.isSystem
             ? '<span class="btn btn-disabled">Protected</span>'
             : `
-            <button class="btn btn-secondary btn-edit" data-type="permissions" data-id="${p.id}">Edit</button>
-            <button class="btn btn-danger btn-delete" data-type="permissions" data-id="${p.id}">Del</button>
+            ${hasPermission("permissions.update") ? `<button class="btn btn-secondary btn-edit" data-type="permissions" data-id="${p.id}">Edit</button>` : ''}
+            ${hasPermission("permissions.delete") ? `<button class="btn btn-danger btn-delete" data-type="permissions" data-id="${p.id}">Del</button>` : ''}
         `
         }
       </td>
@@ -539,26 +631,41 @@ document.getElementById("editForm").addEventListener("submit", async (e) => {
 });
 
 async function populateCreationForms() {
-  try {
-    const roles = await apiFetch("/admin/roles");
-    const userRoleContainer = document.getElementById("newUserRoleChecks");
-    userRoleContainer.innerHTML = roles
-      .map(
-        (r) =>
-          `<label class="checkbox-item"><input type="checkbox" name="newRoles" value="${r.id}"> ${r.name}</label>`
-      )
-      .join("");
+  // Populate Roles for User Creation
+  if (hasPermission("roles.read")) {
+    try {
+      const roles = await apiFetch("/admin/roles");
+      const userRoleContainer = document.getElementById("newUserRoleChecks");
+      if (userRoleContainer) {
+        userRoleContainer.innerHTML = roles
+          .map(
+            (r) =>
+              `<label class="checkbox-item"><input type="checkbox" name="newRoles" value="${r.id}"> ${r.name}</label>`
+          )
+          .join("");
+      }
+    } catch (e) {
+      console.error("Failed to load roles for form:", e);
+      // Don't show toast here to avoid spamming if just one part fails
+    }
+  }
 
-    const perms = await apiFetch("/admin/permissions");
-    const rolePermContainer = document.getElementById("newRolePermChecks");
-    rolePermContainer.innerHTML = perms
-      .map(
-        (p) =>
-          `<label class="checkbox-item"><input type="checkbox" name="newPerms" value="${p.id}"> ${p.name}</label>`
-      )
-      .join("");
-  } catch (e) {
-    showToast("Error", "Failed to load form options", "error");
+  // Populate Permissions for Role Creation
+  if (hasPermission("permissions.read")) {
+    try {
+      const perms = await apiFetch("/admin/permissions");
+      const rolePermContainer = document.getElementById("newRolePermChecks");
+      if (rolePermContainer) {
+        rolePermContainer.innerHTML = perms
+          .map(
+            (p) =>
+              `<label class="checkbox-item"><input type="checkbox" name="newPerms" value="${p.id}"> ${p.name}</label>`
+          )
+          .join("");
+      }
+    } catch (e) {
+      console.error("Failed to load permissions for form:", e);
+    }
   }
 }
 

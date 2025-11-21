@@ -52,8 +52,16 @@ const dbHost = process.env.DB_HOST;
 
 await connectDB(dbName, dbUsername, dbPassword, dbHost);
 
+import { authenticateToken } from "./middleware/authenticateToken.js";
+import { verifyPermission } from "./middleware/verifyPermission.js";
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Protect dashboard.html
+app.get("/dashboard.html", authenticateToken, verifyPermission("dashboard.read"), (req, res, next) => {
+  next();
+});
 
 app.use(express.static(path.join(__dirname, "public")));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));

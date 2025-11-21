@@ -71,7 +71,7 @@ router.get("/profile", authenticateToken, getUserProfile);
 router.get(
   "/admin/stats",
   authenticateToken,
-  verifyRole("admin"),
+  verifyPermission("dashboard.read"),
   getDashboardStats
 );
 
@@ -102,40 +102,40 @@ router.put(
 router.delete("/posts/:id", authenticateToken, verifyPermission("posts.delete"), deletePost);
 
 // --- ADMIN: USERS ---
-router.get("/admin/users", authenticateToken, verifyRole("admin"), getAllUsers);
-router.post("/admin/users", authenticateToken, verifyRole("admin"), createUser);
+router.get("/admin/users", authenticateToken, verifyPermission("users.read"), getAllUsers);
+router.post("/admin/users", authenticateToken, verifyPermission("users.create"), createUser);
 router.put(
   "/admin/users/:id",
   authenticateToken,
-  verifyRole("admin"),
+  verifyPermission("users.update"),
   updateUser
 );
 router.delete(
   "/admin/users/:id",
   authenticateToken,
-  verifyRole("admin"),
+  verifyPermission("users.delete"),
   deleteUser
 );
 router.post(
   "/admin/assign-role",
   authenticateToken,
-  verifyRole("admin"),
+  verifyPermission("users.update"),
   assignRoleToUser
 );
 
 // --- ADMIN: ROLES ---
-router.get("/admin/roles", authenticateToken, verifyRole("admin"), getAllRoles);
-router.post("/admin/roles", authenticateToken, verifyRole("admin"), createRole);
+router.get("/admin/roles", authenticateToken, verifyPermission("roles.read"), getAllRoles);
+router.post("/admin/roles", authenticateToken, verifyPermission("roles.create"), createRole);
 router.put(
   "/admin/roles/:id",
   authenticateToken,
-  verifyRole("admin"),
+  verifyPermission("roles.update"),
   updateRole
 );
 router.delete(
   "/admin/roles/:id",
   authenticateToken,
-  verifyRole("admin"),
+  verifyPermission("roles.delete"),
   deleteRole
 );
 
@@ -143,31 +143,31 @@ router.delete(
 router.get(
   "/admin/permissions",
   authenticateToken,
-  verifyRole("admin"),
+  verifyPermission("permissions.read"),
   getAllPermissions
 );
 router.post(
   "/admin/permissions",
   authenticateToken,
-  verifyRole("admin"),
+  verifyPermission("permissions.create"),
   createPermission
 );
 router.put(
   "/admin/permissions/:id",
   authenticateToken,
-  verifyRole("admin"),
+  verifyPermission("permissions.update"),
   updatePermission
 );
 router.delete(
   "/admin/permissions/:id",
   authenticateToken,
-  verifyRole("admin"),
+  verifyPermission("permissions.delete"),
   deletePermission
 );
 router.post(
   "/admin/assign-perm",
   authenticateToken,
-  verifyRole("admin"),
+  verifyPermission("roles.update"),
   assignPermissionToRole
 );
 

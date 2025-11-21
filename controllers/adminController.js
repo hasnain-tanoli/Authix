@@ -118,17 +118,34 @@ export const createRole = asyncHandler(async (req, res) => {
     const existing = await Role.findOne({ where: { name } });
     if (existing) {
       await t.rollback();
-      return res.status(400).json({ error: "Role name already exists" });
+      return res.status(400).json({ error: "Role already exists" });
     }
 
     const role = await Role.create({ name, description }, { transaction: t });
 
+    // Get posts.read permission
+    const postsReadPerm = await Permission.findOne({ where: { name: "posts.read" } });
+    
+    // Prepare permission IDs array
+    let finalPermissionIds = [];
+    
+    // Add user-selected permissions
     if (permissionIds && Array.isArray(permissionIds)) {
-      await role.setPermissions(permissionIds, { transaction: t });
+      finalPermissionIds = [...permissionIds];
+    }
+    
+    // Auto-add posts.read if it exists and not already included
+    if (postsReadPerm && !finalPermissionIds.includes(postsReadPerm.id.toString()) && !finalPermissionIds.includes(postsReadPerm.id)) {
+      finalPermissionIds.push(postsReadPerm.id);
+    }
+    
+    // Assign all permissions
+    if (finalPermissionIds.length > 0) {
+      await role.setPermissions(finalPermissionIds, { transaction: t });
     }
 
     await t.commit();
-    res.status(201).json({ message: "Role created", role });
+    res.status(201).json({ message: "Role created with default posts.read permission", role });
   } catch (error) {
     await t.rollback();
     throw error;

@@ -44,19 +44,57 @@ const seedDatabase = async () => {
     });
 
     // Create Permissions
-    const [readPostsPerm] = await Permission.findOrCreate({
-      where: { name: "posts.read" },
-      defaults: {
-        action: "read",
-        resource: "posts",
-        description: "Can read posts",
-        isSystem: true,
-      },
-    });
+    const permissions = [
+      { name: "dashboard.read", resource: "dashboard", action: "read", description: "Can view dashboard stats" },
+      
+      { name: "posts.read", resource: "posts", action: "read", description: "Can read posts" },
+      { name: "posts.create", resource: "posts", action: "create", description: "Can create posts" },
+      { name: "posts.update", resource: "posts", action: "update", description: "Can update posts" },
+      { name: "posts.delete", resource: "posts", action: "delete", description: "Can delete posts" },
+      
+      { name: "users.read", resource: "users", action: "read", description: "Can read users" },
+      { name: "users.create", resource: "users", action: "create", description: "Can create users" },
+      { name: "users.update", resource: "users", action: "update", description: "Can update users" },
+      { name: "users.delete", resource: "users", action: "delete", description: "Can delete users" },
+      
+      { name: "roles.read", resource: "roles", action: "read", description: "Can read roles" },
+      { name: "roles.create", resource: "roles", action: "create", description: "Can create roles" },
+      { name: "roles.update", resource: "roles", action: "update", description: "Can update roles" },
+      { name: "roles.delete", resource: "roles", action: "delete", description: "Can delete roles" },
+      
+      { name: "permissions.read", resource: "permissions", action: "read", description: "Can read permissions" },
+      { name: "permissions.create", resource: "permissions", action: "create", description: "Can create permissions" },
+      { name: "permissions.update", resource: "permissions", action: "update", description: "Can update permissions" },
+      { name: "permissions.delete", resource: "permissions", action: "delete", description: "Can delete permissions" },
+    ];
 
-    // Assign only posts.read to user role
-    await userRole.setPermissions([readPostsPerm]);
-    console.log("User role permissions updated to only posts.read");
+    const createdPerms = [];
+    for (const perm of permissions) {
+      const [p] = await Permission.findOrCreate({
+        where: { name: perm.name },
+        defaults: {
+          ...perm,
+          isSystem: true,
+        },
+      });
+      createdPerms.push(p);
+    }
+
+    // Assign ALL permissions to Admin
+    await adminRole.setPermissions(createdPerms);
+    console.log("Admin role permissions updated (ALL)");
+
+    // Assign Editor permissions (Posts + Dashboard)
+    const editorPerms = createdPerms.filter(p => 
+      p.name.startsWith("posts.") || p.name === "dashboard.read"
+    );
+    await editorRole.setPermissions(editorPerms);
+    console.log("Editor role permissions updated (Posts + Dashboard)");
+
+    // Assign User permissions (Posts Read only)
+    const userPerms = createdPerms.filter(p => p.name === "posts.read");
+    await userRole.setPermissions(userPerms);
+    console.log("User role permissions updated (posts.read only)");
 
     const systemEmail = "system@authix.com";
     const systemUsername = "system";
