@@ -209,7 +209,25 @@ export const createPermission = asyncHandler(async (req, res) => {
     action,
     description,
   });
-  res.status(201).json({ message: "Permission created", perm });
+
+  // Auto-assign to admin role
+  const adminRole = await Role.findOne({ where: { name: "admin" } });
+  if (adminRole) {
+    await adminRole.addPermission(perm);
+  }
+
+  // Auto-assign posts.read to user role
+  if (name === "posts.read") {
+    const userRole = await Role.findOne({ where: { name: "user" } });
+    if (userRole) {
+      await userRole.addPermission(perm);
+    }
+  }
+
+  res.status(201).json({
+    message: "Permission created and auto-assigned to appropriate roles",
+    perm,
+  });
 });
 
 export const getAllPermissions = asyncHandler(async (req, res) => {
@@ -239,15 +257,28 @@ export const updatePermission = asyncHandler(async (req, res) => {
 });
 
 export const deletePermission = asyncHandler(async (req, res) => {
-  const perm = await Permission.findByPk(req.params.id);
+  const { id } = req.params;
+  const perm = await Permission.findByPk(id, {
+    include: [{ model: Role }],
+  });
+
   if (!perm) return res.status(404).json({ error: "Permission not found" });
   if (perm.isSystem)
     return res
       .status(403)
       .json({ error: "System permissions cannot be deleted" });
 
+  // Remove permission from all roles before deletion
+  if (perm.Roles && perm.Roles.length > 0) {
+    for (const role of perm.Roles) {
+      await role.removePermission(perm);
+    }
+  }
+
   await perm.destroy();
-  res.json({ message: "Permission deleted successfully" });
+  res.json({
+    message: "Permission deleted successfully and removed from all roles",
+  });
 });
 
 export const assignPermissionToRole = asyncHandler(async (req, res) => {

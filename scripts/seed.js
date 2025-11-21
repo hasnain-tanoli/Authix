@@ -27,14 +27,36 @@ const seedDatabase = async () => {
       defaults: {
         description: "Can create and edit content",
         level: 50,
+        isSystem: false,
+      },
+    });
+
+    // Update existing editor role to be non-system
+    if (editorRole.isSystem) {
+      editorRole.isSystem = false;
+      await editorRole.save();
+      console.log("Editor role updated to isSystem: false");
+    }
+
+    const [userRole] = await Role.findOrCreate({
+      where: { name: "user" },
+      defaults: { description: "Standard user", level: 10, isSystem: true },
+    });
+
+    // Create Permissions
+    const [readPostsPerm] = await Permission.findOrCreate({
+      where: { name: "posts.read" },
+      defaults: {
+        action: "read",
+        resource: "posts",
+        description: "Can read posts",
         isSystem: true,
       },
     });
 
-    await Role.findOrCreate({
-      where: { name: "user" },
-      defaults: { description: "Standard user", level: 10, isSystem: true },
-    });
+    // Assign only posts.read to user role
+    await userRole.setPermissions([readPostsPerm]);
+    console.log("User role permissions updated to only posts.read");
 
     const systemEmail = "system@authix.com";
     const systemUsername = "system";

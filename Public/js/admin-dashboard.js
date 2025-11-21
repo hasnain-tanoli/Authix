@@ -273,7 +273,10 @@ async function loadPosts() {
                         </div>
                     </div>
                 </div>
-                <button class="btn btn-primary btn-edit" data-type="posts" data-id="${p.id}">Edit</button>
+                <div style="display:flex; gap:10px;">
+                    <button class="btn btn-primary btn-edit" data-type="posts" data-id="${p.id}">Edit</button>
+                    <button class="btn btn-danger btn-delete" data-type="posts" data-id="${p.id}">Delete</button>
+                </div>
             </div>
         </div>
     `
