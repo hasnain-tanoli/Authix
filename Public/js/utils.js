@@ -42,7 +42,18 @@ async function apiFetch(url, options = {}) {
     const data = await res.json();
 
     if (!res.ok) {
-      throw new Error(data.error || "An unexpected error occurred");
+      // Handle specific HTTP status codes
+      if (res.status === 403) {
+        throw new Error(data.message || "You don't have permission to perform this action");
+      } else if (res.status === 401) {
+        throw new Error("Unauthorized. Please log in again.");
+      } else if (res.status === 404) {
+        throw new Error(data.error || "Resource not found");
+      } else if (res.status === 400) {
+        throw new Error(data.error || "Invalid request");
+      } else {
+        throw new Error(data.error || data.message || "An unexpected error occurred");
+      }
     }
 
     return data;

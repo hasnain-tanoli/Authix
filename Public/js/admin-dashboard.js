@@ -1,5 +1,28 @@
 let currentUser = null;
 
+// Helper function to check if current user has a specific permission
+function hasPermission(permissionName) {
+  if (!currentUser || !currentUser.Roles) return false;
+  
+  return currentUser.Roles.some(role => 
+    role.Permissions && role.Permissions.some(perm => perm.name === permissionName)
+  );
+}
+
+// Helper function to get all user permissions
+function getUserPermissions() {
+  if (!currentUser || !currentUser.Roles) return [];
+  
+  const permissions = new Set();
+  currentUser.Roles.forEach(role => {
+    if (role.Permissions) {
+      role.Permissions.forEach(perm => permissions.add(perm.name));
+    }
+  });
+  
+  return Array.from(permissions);
+}
+
 const generateSlug = (text) => {
   return text
     .toString()
@@ -40,9 +63,23 @@ window.addEventListener("DOMContentLoaded", async () => {
         document.getElementById("adminLinks").style.display = "block";
         loadDashboardStats();
         populateCreationForms();
+      } else if (roles.includes("editor")) {
+        // Editor can see posts but not admin functions
+        switchView("posts");
       } else {
+        // Regular users go to posts view
         switchView("posts");
       }
+      
+      // Hide create post form if user doesn't have permission
+      if (!hasPermission("posts.create")) {
+        const createPostCard = document.getElementById("createPostCard");
+        if (createPostCard) {
+          createPostCard.style.display = "none";
+        }
+      }
+      
+      // Load posts for everyone who can access dashboard
       loadPosts();
     }
   } catch (e) {
@@ -96,6 +133,7 @@ window.switchView = function (viewName) {
   if (viewName === "roles") loadRoles();
   if (viewName === "permissions") loadPermissions();
   if (viewName === "dashboard") loadDashboardStats();
+  if (viewName === "posts") loadPosts();
   if (viewName === "profile") loadProfile();
 };
 
@@ -275,8 +313,12 @@ async function loadPosts() {
                     </div>
                 </div>
                 <div style="display:flex; gap:10px;">
-                    <button class="btn btn-primary btn-edit" data-type="posts" data-id="${p.id}">Edit</button>
-                    <button class="btn btn-danger btn-delete" data-type="posts" data-id="${p.id}">Delete</button>
+                    ${hasPermission("posts.update") 
+                      ? `<button class="btn btn-primary btn-edit" data-type="posts" data-id="${p.id}">Edit</button>` 
+                      : ''}
+                    ${hasPermission("posts.delete") 
+                      ? `<button class="btn btn-danger btn-delete" data-type="posts" data-id="${p.id}">Delete</button>` 
+                      : ''}
                 </div>
             </div>
         </div>

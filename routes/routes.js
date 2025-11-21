@@ -4,6 +4,7 @@ import path from "path";
 import { v4 as uuidv4 } from "uuid";
 import { authenticateToken } from "../middleware/authenticateToken.js";
 import { verifyRole } from "../middleware/verifyRoles.js";
+import { verifyPermission } from "../middleware/verifyPermission.js";
 import {
   handleLogin,
   handleSignup,
@@ -85,7 +86,7 @@ router.get("/posts/:slug", getPostBySlug);
 router.post(
   "/posts",
   authenticateToken,
-  verifyRole("admin", "editor"),
+  verifyPermission("posts.create"),
   upload.single("image"),
   createPost
 );
@@ -93,12 +94,12 @@ router.post(
 router.put(
   "/posts/:id",
   authenticateToken,
-  verifyRole("admin", "editor"),
+  verifyPermission("posts.update"),
   upload.single("image"),
   updatePost
 );
 
-router.delete("/posts/:id", authenticateToken, verifyRole("admin"), deletePost);
+router.delete("/posts/:id", authenticateToken, verifyPermission("posts.delete"), deletePost);
 
 // --- ADMIN: USERS ---
 router.get("/admin/users", authenticateToken, verifyRole("admin"), getAllUsers);
