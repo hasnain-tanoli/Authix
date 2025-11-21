@@ -6,34 +6,46 @@
       // User is logged in, update nav
       const navLinks = document.querySelector(".nav-links");
       const ctaButtons = document.getElementById("ctaButtons");
-      const roles = user.Roles.map((r) => r.name);
-      
-      // Update navigation based on roles
-      if (roles.includes("admin") || roles.includes("editor")) {
-        navLinks.innerHTML = `
-          <a href="posts.html" class="nav-btn btn-outline">Posts</a>
-          <a href="dashboard.html" class="nav-btn btn-outline">Dashboard</a>
-          <a href="javascript:void(0);" class="nav-btn btn-fill logout-btn">Logout</a>
-        `;
-        
-        // Update CTA buttons for admin/editor
-        ctaButtons.innerHTML = `
-          <a href="posts.html" class="nav-btn btn-fill">View Posts</a>
-          <a href="dashboard.html" class="nav-btn btn-outline">Go to Dashboard</a>
-        `;
-      } else {
-        // Regular user - only show posts and logout
-        navLinks.innerHTML = `
-          <a href="posts.html" class="nav-btn btn-outline">Posts</a>
-          <a href="javascript:void(0);" class="nav-btn btn-fill logout-btn">Logout</a>
-        `;
-        
-        // Update CTA buttons for regular user
-        ctaButtons.innerHTML = `
-          <a href="posts.html" class="nav-btn btn-fill">View Posts</a>
-          <a href="javascript:void(0);" class="nav-btn btn-outline logout-btn">Logout</a>
-        `;
+      // Helper to check permissions
+      const hasPermission = (permissionName) => {
+        if (!user || !user.Roles) return false;
+        return user.Roles.some(role => 
+          role.Permissions && role.Permissions.some(perm => perm.name === permissionName)
+        );
+      };
+
+      const canViewDashboard = hasPermission("dashboard.read");
+      const canViewPosts = hasPermission("posts.read");
+
+      // Build Navigation Links
+      let navHtml = "";
+      if (canViewPosts) {
+        navHtml += `<a href="posts.html" class="nav-btn btn-outline">Posts</a>`;
       }
+      if (canViewDashboard) {
+        navHtml += `<a href="dashboard.html" class="nav-btn btn-outline">Dashboard</a>`;
+      }
+      navHtml += `<a href="javascript:void(0);" class="nav-btn btn-fill logout-btn">Logout</a>`;
+      
+      navLinks.innerHTML = navHtml;
+
+      // Build CTA Buttons
+      let ctaHtml = "";
+      if (canViewPosts) {
+        ctaHtml += `<a href="posts.html" class="nav-btn btn-fill">View Posts</a>`;
+      }
+      if (canViewDashboard) {
+        ctaHtml += `<a href="dashboard.html" class="nav-btn btn-outline">Go to Dashboard</a>`;
+      }
+      if (!canViewPosts && !canViewDashboard) {
+         // Fallback if no permissions
+         ctaHtml += `<a href="javascript:void(0);" class="nav-btn btn-outline logout-btn">Logout</a>`;
+      } else if (!canViewDashboard) {
+         // If only posts or nothing, add logout as secondary
+         ctaHtml += `<a href="javascript:void(0);" class="nav-btn btn-outline logout-btn">Logout</a>`;
+      }
+      
+      ctaButtons.innerHTML = ctaHtml;
     }
   } catch (e) {
     // User not logged in, keep default nav and buttons
@@ -55,8 +67,13 @@ document.addEventListener("click", async (e) => {
 async function loadRecentPosts() {
   try {
     const res = await fetch("/posts");
+    
+    if (!res.ok) return; // User likely not authorized or error
+
     const posts = await res.json();
     
+    if (!Array.isArray(posts)) return; // Safety check
+
     // Filter published posts and get latest 3
     const recentPosts = posts
       .filter((p) => p.status === "published")

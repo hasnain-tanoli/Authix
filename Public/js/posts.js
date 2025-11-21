@@ -10,9 +10,16 @@ async function initPostsPage() {
       document.getElementById("signupLink").style.display = "none";
       document.getElementById("logoutBtn").style.display = "inline-block";
 
-      // Show dashboard link if user has admin or editor role
-      const roles = currentUser.Roles.map((r) => r.name);
-      if (roles.includes("admin") || roles.includes("editor")) {
+      // Helper to check permissions
+      const hasPermission = (permissionName) => {
+        if (!currentUser || !currentUser.Roles) return false;
+        return currentUser.Roles.some(role => 
+          role.Permissions && role.Permissions.some(perm => perm.name === permissionName)
+        );
+      };
+
+      // Show dashboard link if user has dashboard.read permission
+      if (hasPermission("dashboard.read")) {
         const dashboardLink = document.getElementById("dashboardLink");
         dashboardLink.style.display = "inline-block";
         dashboardLink.href = "dashboard.html";
@@ -36,7 +43,23 @@ async function initPostsPage() {
 async function loadAllPosts() {
   try {
     const res = await fetch("/posts");
+    
+    if (res.status === 401 || res.status === 403) {
+       document.getElementById("postsContent").innerHTML = 
+         '<div class="no-posts">You do not have permission to view posts. Please <a href="login.html">login</a> with an authorized account.</div>';
+       return;
+    }
+
+    if (!res.ok) {
+       // Handle other errors or generic failure
+       throw new Error(`Failed to fetch posts: ${res.statusText}`);
+    }
+
     const posts = await res.json();
+
+    if (!Array.isArray(posts)) {
+       throw new Error("Invalid response format");
+    }
 
     const container = document.getElementById("postsContent");
 
@@ -46,8 +69,24 @@ async function loadAllPosts() {
     }
 
     // Filter to only show published posts for non-admin users
+    // Note: API now enforces posts.read, so if we are here, we have permission.
+    // But we might still want to filter drafts if the user only has posts.read but not posts.update (editor/admin usually see all)
+    // For simplicity, let's assume posts.read allows seeing all posts returned by API.
+    // However, the API getAllPosts returns ALL posts. 
+    // Ideally, the API should filter based on permission, or we filter here.
+    // Let's keep the client-side filter for now, but update the condition.
+    
     let displayPosts = posts;
-    if (!currentUser || !currentUser.Roles.some((r) => ["admin", "editor"].includes(r.name))) {
+    // Check if user has "posts.update" or "posts.delete" (implies admin/editor capabilities) to see drafts
+    // Or just check if they are admin/editor role for legacy compatibility, OR check permissions.
+    // Let's use permission check if we can access currentUser here.
+    // currentUser is global.
+    
+    const canManagePosts = currentUser && currentUser.Roles.some(role => 
+        role.Permissions && role.Permissions.some(p => ["posts.update", "posts.delete"].includes(p.name))
+    );
+
+    if (!canManagePosts) {
       displayPosts = posts.filter((p) => p.status === "published");
     }
 

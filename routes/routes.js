@@ -79,9 +79,9 @@ router.get(
 router.get("/media/:id", getMedia);
 
 // --- POST ROUTES (CMS) ---
-router.get("/posts", getAllPosts);
-router.get("/posts/slug/:slug", getPostBySlug);
-router.get("/posts/:slug", getPostBySlug);
+router.get("/posts", authenticateToken, verifyPermission("posts.read"), getAllPosts);
+router.get("/posts/slug/:slug", authenticateToken, verifyPermission("posts.read"), getPostBySlug);
+router.get("/posts/:slug", authenticateToken, verifyPermission("posts.read"), getPostBySlug);
 
 router.post(
   "/posts",

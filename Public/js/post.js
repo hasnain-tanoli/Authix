@@ -8,20 +8,26 @@ const slug = urlParams.get('slug');
     const user = await fetchProfile();
     if (user) {
       const navLinks = document.getElementById("navLinks");
-      const roles = user.Roles.map((r) => r.name);
+      // Helper to check permissions
+      const hasPermission = (permissionName) => {
+        if (!user || !user.Roles) return false;
+        return user.Roles.some(role => 
+          role.Permissions && role.Permissions.some(perm => perm.name === permissionName)
+        );
+      };
+
+      const canViewDashboard = hasPermission("dashboard.read");
+
+      // Build Navigation Links
+      let navHtml = `<a href="posts.html" class="nav-btn btn-outline">All Posts</a>`;
       
-      if (roles.includes("admin") || roles.includes("editor")) {
-        navLinks.innerHTML = `
-          <a href="posts.html" class="nav-btn btn-outline">All Posts</a>
-          <a href="dashboard.html" class="nav-btn btn-outline">Dashboard</a>
-          <a href="javascript:void(0);" class="nav-btn btn-fill logout-btn">Logout</a>
-        `;
-      } else {
-        navLinks.innerHTML = `
-          <a href="posts.html" class="nav-btn btn-outline">All Posts</a>
-          <a href="javascript:void(0);" class="nav-btn btn-fill logout-btn">Logout</a>
-        `;
+      if (canViewDashboard) {
+        navHtml += `<a href="dashboard.html" class="nav-btn btn-outline">Dashboard</a>`;
       }
+      
+      navHtml += `<a href="javascript:void(0);" class="nav-btn btn-fill logout-btn">Logout</a>`;
+      
+      navLinks.innerHTML = navHtml;
     }
   } catch (e) {
     // Not logged in, keep default nav
@@ -55,6 +61,17 @@ async function loadPost() {
   try {
     const response = await fetch(`/posts/slug/${slug}`);
     
+    if (response.status === 401 || response.status === 403) {
+       container.innerHTML = `
+         <div class="error">
+           <h2>Access Denied</h2>
+           <p>You do not have permission to view this post. Please <a href="login.html">login</a> with an authorized account.</p>
+           <a href="posts.html" class="back-link">← Back to All Posts</a>
+         </div>
+       `;
+       return;
+    }
+
     if (!response.ok) {
       throw new Error('Post not found');
     }
