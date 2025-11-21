@@ -1,5 +1,4 @@
 import { Sequelize } from "sequelize";
-import pg from "pg";
 import createUserModel from "../models/userModel.js";
 import createRoleModel from "../models/roleModel.js";
 import createPostModel from "../models/postModel.js";
@@ -21,7 +20,6 @@ export const connectDB = async (database, username, password, host) => {
   sequelize = new Sequelize(database, username, password, {
     host: host || "localhost",
     dialect: "postgres",
-    dialectModule: pg,
     dialectOptions: {
       ssl: isLocal ? false : { require: true, rejectUnauthorized: false },
     },
