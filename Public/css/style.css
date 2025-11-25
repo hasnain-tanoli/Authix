@@ -383,28 +383,6 @@ input:checked + .slider:before {
 
 .perm-info h4 {
     font-size: 1rem;
-    margin-bottom: 4px;
-}
-
-.perm-info p {
-    font-size: 0.85rem;
-}
-
-/* Post Grid (Public) */
-.masonry-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-    gap: 32px;
-}
-
-.post-card-minimal {
-    background: var(--surface);
-    border-radius: var(--radius-lg);
-    overflow: hidden;
-    box-shadow: var(--shadow-sm);
-    transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
-    height: 100%;
-    display: flex;
     flex-direction: column;
 }
 
